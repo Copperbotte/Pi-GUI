@@ -1,4 +1,5 @@
-import can
+#import can
+from CanWindowsSpoof import *
 import bitstring
 from bitarray.util import ba2int
 from bitarray import bitarray

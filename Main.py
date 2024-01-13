@@ -10,9 +10,8 @@ from os.path import exists
 
 import datetime
 
-
-
-import can  # /////////////////////////////////////////////////////////////////////////
+#import can  # /////////////////////////////////////////////////////////////////////////
+from CanWindowsSpoof import *
 from CanReceive import CanReceive
 
 # This code is initializing the bus variable with the channel and bustype.
