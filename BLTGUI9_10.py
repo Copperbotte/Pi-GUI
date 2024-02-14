@@ -973,10 +973,15 @@ class Valves:
         self.commandOFF = args[5]
         self.commandON = args[6]
         self.color = args[7]
+        
         if "IGN" in self.photo_name:
-            self.photo = PhotoImage(file="Valve Buttons/" + self.name + "-Off-EnableOn.png").subsample(2)
+            self.photo = "Valve Buttons/" + self.name + "-Off-EnableOn.png"
         else:
-            self.photo = PhotoImage(file="Valve Buttons/" + self.name + "-Closed-EnableOn.png").subsample(2)
+            self.photo = "Valve Buttons/" + self.name + "-Closed-EnableOn.png"
+
+        self.photo = Image.open(self.photo).resize((72,72))
+        self.photo = ImageTk.PhotoImage(self.photo)
+            
         self.Button = Button(parent, font=("Verdana", 10), fg='red', bg='black')
         self.Button.place(relx=self.x_pos, rely=self.y_pos)
         self.Button.config(image=self.photo)
@@ -1121,7 +1126,8 @@ class Valves:
                 #print(self.photo_name + " Does not exist. Status is " + str(self.status))
             else:
                 #print(self.photo_name, self.status)
-                self.photo = PhotoImage(file=self.photo_name)
+                img = Image.open(self.photo_name).resize((72,72))
+                self.photo = ImageTk.PhotoImage(img)
                 self.Button.config(image=self.photo)
 
 
