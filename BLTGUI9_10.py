@@ -21,7 +21,8 @@ CanStatus = False
 try:
     import can  # /////////////////////////////////////////////////////////////////////////
 
-    bus = can.interface.Bus(channel='can0', bustype='socketcan')  # ///////////////
+    #bus = can.interface.Bus(channel='can0', bustype='socketcan')  # ///////////////
+    bus = can.interface.Bus(channel='virtual', bustype='virtual')  # ///////////////
     CanStatus = True
     from CanReceive import CanReceive
     canReceive = None
@@ -71,54 +72,54 @@ class Main:
 
     # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON
     valves = [
-        ['HV', .55, .25, 16, 2, 34, 35, yellow, 122,2],
-        ['HP', .6, .15, 17, 1, 32, 33, yellow, 121,2],
-        ['LDR', .35, .35, 19, 3, 38, 39, blue,133, 3],
-        ['FDR', .445, .35, 22, 7, 44, 45, red,137, 3],
-        ['LDV', .225, .35, 20, 4, 40, 41, blue,134, 3],
-        ['FDV', .55, .35, 23, 8, 46, 47, red,138, 3],
-        ['LV', .275, .45, 18, 1, 36, 37, blue,131, 3],
-        ['FV', .535, .45, 21, 5, 42, 43, red,135, 3],
-        ['LMV', .35, .6875, 24, 4, 48, 49, blue,124,2],
-        ['FMV', .475, .6875, 25, 3, 50, 51, red,123,2],
-        ['IGN1', .475, .775, 26, 5, 52, 53, green,125,2], 
-        ['IGN2', .475, .85, 27, 7, 54, 55, green,127,2]
+        ['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
+        ['HP',   .6,   .15,   17, 1, 32, 33, yellow, 121, 2], 
+        ['LDR',  .35,  .35,   19, 3, 38, 39, blue,   133, 3], 
+        ['FDR',  .445, .35,   22, 7, 44, 45, red,    137, 3], 
+        ['LDV',  .225, .35,   20, 4, 40, 41, blue,   134, 3], 
+        ['FDV',  .55,  .35,   23, 8, 46, 47, red,    138, 3], 
+        ['LV',   .275, .45,   18, 1, 36, 37, blue,   131, 3], 
+        ['FV',   .535, .45,   21, 5, 42, 43, red,    135, 3], 
+        ['LMV',  .35,  .6875, 24, 4, 48, 49, blue,   124, 2], 
+        ['FMV',  .475, .6875, 25, 3, 50, 51, red,    123, 2], 
+        ['IGN1', .475, .775,  26, 5, 52, 53, green,  125, 2], 
+        ['IGN2', .475, .85,   27, 7, 54, 55, green,  127, 2]  
     ]
     # [ 
     # [ Sensor Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID,
     # labelColor]
     sensors = [
-        ["High\nPress 1", 0.475, 0.05, 0.0, 0.05, 70, 81, yellow],#, 1, 1],
-        ["High\nPress 2", 0.525, 0.05, 0.0, 0.05, 72, 81, yellow],#, 1, 1],
-        ["Fuel\nTank 1", 0.675, 0.600, 0, 0.05, 62, 81, red],#, 0.0258, -161.04],
-        ["Lox Dome\nReg", 0.175, 0.700, 0, 0.05, 76, 81, blue],#, 0.0258, -161.04],
-        ["Fuel Dome\nReg", 0.675, 0.700, 0, 0.05, 74, 81, red],#, 0.0258, -161.04],
-        ["Lox\nTank 1", 0.225, 0.600, 0, 0.05, 66, 81, blue],#, 1, 1],
-        ["Fuel\nTank 2", 0.725, 0.600, 0, 0.05, 64, 81, red],#, 0.0293, -190.04],
-        ["Lox\nTank 2", 0.175, 0.600, 0.0, 0.05, 68, 81, blue],#, 1,1],
-        ["Fuel\nProp Inlet", .725, 0.7, 0.0, 0.05, 58, 81, red],#, 1, 1],
-        ["Lox\nProp Inlet", 0.225, 0.7, 0.0, 0.05, 60, 81, blue],#, 1, 1],
-        ["Fuel\nInjector", .7, 0.8, 0.0, 0.05, 54, 81, red],#, 1, 1],
-        ["LC1: ", .55, .7, 0.035, 0, 37, 37, green],#, 1, 1],
-        ["Chamber 1", .55, 0.6, 0.065, 0, 50, 51, green],
-        ["LC2: ", .55, .75, 0.035, 0, 43, 43, green],#, 1, 1],
-        ["Chamber 2", .55, 0.65, 0.065, 0, 52, 81, green],
-        ["LC3: ", .55, .8, 0.035, 0, 49, 49, green],#, 1, 1],
-        ["MV\nPneumatic", 0.4, 0.6, 0.01, 0.05, 56, 81, purple],#, 1, 1],
+        ["High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
+        ["High\nPress 2",    0.525, 0.05,  0.0,   0.05, 72, 81, yellow],#, 1, 1],
+        ["Fuel\nTank 1",     0.675, 0.600, 0.0,   0.05, 62, 81, red   ],#, 0.0258, -161.04],
+        ["Lox Dome\nReg",    0.175, 0.700, 0.0,   0.05, 76, 81, blue  ],#, 0.0258, -161.04],
+        ["Fuel Dome\nReg",   0.675, 0.700, 0.0,   0.05, 74, 81, red   ],#, 0.0258, -161.04],
+        ["Lox\nTank 1",      0.225, 0.600, 0.0,   0.05, 66, 81, blue  ],#, 1, 1],
+        ["Fuel\nTank 2",     0.725, 0.600, 0.0,   0.05, 64, 81, red   ],#, 0.0293, -190.04],
+        ["Lox\nTank 2",      0.175, 0.600, 0.0,   0.05, 68, 81, blue  ],#, 1,1],
+        ["Fuel\nProp Inlet", 0.725, 0.7,   0.0,   0.05, 58, 81, red   ],#, 1, 1],
+        ["Lox\nProp Inlet",  0.225, 0.7,   0.0,   0.05, 60, 81, blue  ],#, 1, 1],
+        ["Fuel\nInjector",   0.7,   0.8,   0.0,   0.05, 54, 81, red   ],#, 1, 1],
+        ["LC1: ",            0.55,  0.7,   0.035, 0.0,  37, 37, green ],#, 1, 1],
+        ["Chamber 1",        0.55,  0.6,   0.065, 0.0,  50, 51, green ],
+        ["LC2: ",            0.55,  0.75,  0.035, 0.0,  43, 43, green ],#, 1, 1],
+        ["Chamber 2",        0.55,  0.65,  0.065, 0.0,  52, 81, green ],
+        ["LC3: ",            0.55,  0.8,   0.035, 0.0,  49, 49, green ],#, 1, 1],
+        ["MV\nPneumatic",    0.4,   0.6,   0.01,  0.05, 56, 81, purple],#, 1, 1],
 
         #["Chamber 2", .55, 0.65, 0.065, 0, 20, 81, green],
 
     ]
     # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState]
     States = [
-        #["Active", 2, 1, 3, 5, False, 1],
-        ["Test", 2, 1, 3, 5, False, 1],
-        ["Hi-Press\nPress Arm", 3, 1, 10, 11, True,2],
-        ["Hi-Press\nPressurize", 4, 1, 12, 13, False,3],
-        ["Tank Press \nArm", 5, 1, 14, 15, True, 4],
-        ["Tank \nPressurize", 6, 1, 16, 17, False, 5],
-        ["Fire Arm", 7, 1, 18, 19, True, 6],
-        ["FIRE", 8, 1, 20, 21, False, 7]
+        #["Active",              2, 1,  3,  5, False, 1],
+        ["Test",                 2, 1,  3,  5, False, 1],
+        ["Hi-Press\nPress Arm",  3, 1, 10, 11, True,  2],
+        ["Hi-Press\nPressurize", 4, 1, 12, 13, False, 3],
+        ["Tank Press \nArm",     5, 1, 14, 15, True,  4],
+        ["Tank \nPressurize",    6, 1, 16, 17, False, 5],
+        ["Fire Arm",             7, 1, 18, 19, True,  6],
+        ["FIRE",                 8, 1, 20, 21, False, 7]
     ]
     Vent = [
         "Vent", 0.15, 1, 3, 9, False, 0
@@ -128,11 +129,11 @@ class Main:
     ]
     Controllers = [
         #["Tank Controller HiPress", 2, False, black],
-        #["Tank Controller Lox", 3, True, blue],
-        #["Tank Controller Fuel", 4, True, red],
-        ["Engine Controller 1", 5, False, black],
-        ["Auto Sequence", 1, False, black],
-        ["Node Controller", 0, False, black],
+        #["Tank Controller Lox",     3, True,  blue ],
+        #["Tank Controller Fuel",    4, True,  red  ],
+        ["Engine Controller 1",      5, False, black],
+        ["Auto Sequence",            1, False, black],
+        ["Node Controller",          0, False, black],
     ]
 
     # System starts off in a passive state
@@ -1509,7 +1510,8 @@ Starts Code
 """
 
 if CanStatus:
-    canReceive = CanReceive(channel='can0', bustype='socketcan')
+    #canReceive = CanReceive(channel='can0', bustype='socketcan')
+    canReceive = CanReceive(channel='virtual', bustype='virtual')
 
 GUI = Main(canReceive)
 # GUI.run()
