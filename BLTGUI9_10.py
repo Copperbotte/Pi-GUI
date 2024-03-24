@@ -174,72 +174,62 @@ class Main:
 
     def imagePlacement(self):
         """ Propulsion System Diagram"""
-        EngineArt = Image.open("GUI Images/Engine_Clipart.png")
-        render = ImageTk.PhotoImage(EngineArt)
-        img = Label(self.parentMainScreen, image=render, bg=black)
-        img.image = render
-        img.place(relx=.4, rely=.775)
 
-        LOXTankArt = Image.open("GUI Images/LOxTankClipart.png")
-        render = ImageTk.PhotoImage(LOXTankArt)
-        img = Label(self.parentMainScreen, image=render, bg=black)
-        img.image = render
-        img.place(relx=.3, rely=.55)
+        buffer = [
+            ["GUI Images/Engine_Clipart.png",        dict(relx=.4,    rely=.775)],
+            ["GUI Images/LOxTankClipart.png",        dict(relx=.3,    rely=.55 )],
+            ["GUI Images/FuelTankClipart.png",       dict(relx=.5075, rely=.55 )],
+            ["GUI Images/PressurantTankClipart.png", dict(relx=.405,  rely=.01 )]
+        ]
 
-        FuelTankArt = Image.open("GUI Images/FuelTankClipart.png")
-        render = ImageTk.PhotoImage(FuelTankArt)
-        img = Label(self.parentMainScreen, image=render, bg=black)
-        img.image = render
-        img.place(relx=.5075, rely=.55)
-
-        COPVTankArt = Image.open("GUI Images/PressurantTankClipart.png")
-        render = ImageTk.PhotoImage(COPVTankArt)
-        img = Label(self.parentMainScreen, image=render, bg=black)
-        img.image = render
-        img.place(relx=.405, rely=.01)
+        for src, iargs in buffer:
+            img = Image.open(src)
+            render = ImageTk.PhotoImage(img)
+            label = Label(self.parentMainScreen, image=render, bg=black)
+            label.image = render
+            label.place(**iargs)
         
     def propLinePlacement(self):
+        # Lines showing the fluid flow routing in the fluid system
         aFont = tkFont.Font(family="Verdana", size=15, weight="bold")
 
-        # Lines showing the fluid flow routing in the fluid system
-        # Lines showing the fluid flow routing in the fluid system
-        self.parentMainScreen.create_line(800, 50, 800, 250, fill=yellow, width=5)
-        self.parentMainScreen.create_line(600, 250, 1000, 250, fill=yellow, width=5)  #
-        self.parentMainScreen.create_line(600, 250, 600, 400, fill=yellow, width=5)  #
-        self.parentMainScreen.create_line(800, 250, 800, 400, fill=yellow, width=5)  #
-        self.parentMainScreen.create_line(800, 175, 1200, 175, fill=yellow, width=5)  #
-        self.parentMainScreen.create_line(1000, 250, 1000, 400, fill=yellow, width=5)  #
-        self.parentMainScreen.create_line(1100, 175, 1100, 300, fill=yellow, width=5)  #
+        # Vertex Buffer
+        vb = [ 
+            ( 800,   50), ( 800,  250), ( 600,  250), (1000,  250), ( 600,  400), ( 800,  400), ( 800,  175), (1200,  175), 
+            (1000,  400), (1100,  175), (1100,  300), ( 800,  300), ( 500,  400), (1100,  400), ( 700,  600), ( 900,  600), 
+            ( 800,  600), ( 900,  750), ( 700,  750), ( 600,  750), ( 785,  750), ( 785,  900), ( 600,  500), ( 500,  500), 
+            (1000,  750), ( 815,  750), ( 815,  900), (1000,  500), (1100,  500), 
+        ]
 
-        self.parentMainScreen.create_line(800, 300, 800, 400, fill=purple, width=5)  #
-        self.parentMainScreen.create_line(500, 400, 1100, 400, fill=purple, width=5)  #
-        self.parentMainScreen.create_line(700, 600, 900, 600, fill=purple, width=5)  #
-        self.parentMainScreen.create_line(800, 400, 800, 600, fill=purple, width=5)  #
-        self.parentMainScreen.create_line(900, 600, 900, 750, fill=purple, width=5)  #
-        self.parentMainScreen.create_line(700, 600, 700, 750, fill=purple, width=5)  #
+        # Index Buffer
+        ib = [
+            ( 0,  1), ( 2,  3), ( 2,  4), ( 1,  5), ( 6,  7), ( 3,  8), ( 9, 10), # High Pressure lines
+            (11,  5), (12, 13), (14, 15), ( 5, 16), (15, 17), (14, 18),           # Pnumatics
+            ( 4, 19), (19, 20), (20, 21), (22, 23),         # Lox
+            ( 8, 24), (24, 25), (25, 26), (27, 28)          # Fuel
+        ]
 
-        self.parentMainScreen.create_line(600, 400, 600, 750, fill=blue, width=5)  #
-        self.parentMainScreen.create_line(600, 750, 785, 750, fill=blue, width=5)  #
-        self.parentMainScreen.create_line(785, 750, 785, 900, fill=blue, width=5)  #
-        self.parentMainScreen.create_line(600, 500, 500, 500, fill=blue, width=5)  #
+        colors = [yellow]*7 + [purple]*6 + [blue]*4 + [red]*4
 
-        self.parentMainScreen.create_line(1000, 400, 1000, 750, fill=red, width=5)  #
-        self.parentMainScreen.create_line(1000, 750, 815, 750, fill=red, width=5)  #
-        self.parentMainScreen.create_line(815, 750, 815, 900, fill=red, width=5)  #
-        self.parentMainScreen.create_line(1000, 500, 1100, 500, fill=red, width=5)  # 
-
-        self.parentMainScreen.create_rectangle(1275, 600, 1475, 850, outline=red, fill="black")
-        self.parentMainScreen.create_rectangle(300, 600, 500, 850, outline=blue, fill="black")
-        self.parentMainScreen.create_rectangle(1050, 600, 1250, 900, outline=green, fill="black")
-        self.parentMainScreen.create_rectangle(850, 30, 1100, 150, outline=yellow, fill="black")
-        self.parentMainScreen.create_rectangle(750, 625, 870, 725, outline=purple, fill="black")
+        for (i0, i1), fill in zip(ib, colors):
+            self.parentMainScreen.create_line(vb[i0], vb[i1], fill=fill, width=5)
         
-        self.parentMainScreen.create_rectangle(10, 160, 275, 1020, outline=orange, fill="black", width=5)
-
-        self.parentSecondScreen.create_rectangle(450, 10, 750, 550, outline=orange, fill="black", width=5)
-        self.parentSecondScreen.create_rectangle(10, 10, 425, 800, outline=orange, fill="black", width=5)
+        # These are the number value boxes.  Why are they here?
+        self.parentMainScreen.create_rectangle(1275, 600, 1475, 850, outline=red,     fill=black)
+        self.parentMainScreen.create_rectangle(300,  600, 500,  850, outline=blue,    fill=black)
+        self.parentMainScreen.create_rectangle(1050, 600, 1250, 900, outline=green,   fill=black)
+        self.parentMainScreen.create_rectangle(850,  30,  1100, 150, outline=yellow,  fill=black)
+        self.parentMainScreen.create_rectangle(750,  625, 870,  725, outline=purple,  fill=black)
         
-        self.parentSecondScreen.create_rectangle(775, 475, 1125, 900, outline=green, fill="black", width=5)
+        # This holds the control buttons on the left.
+        self.parentMainScreen.create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
+
+        # Second display value boxes.
+        self.parentSecondScreen.create_rectangle(450, 10, 750, 550, outline=orange, fill=black, width=5)
+        self.parentSecondScreen.create_rectangle(10, 10, 425, 800, outline=orange, fill=black, width=5)
+        
+        # Second display ENGINE CONTROLLER BOX
+        self.parentSecondScreen.create_rectangle(775, 475, 1125, 900, outline=green, fill=black, width=5)
 
         self.SensorsLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="SENSORS")
         self.SensorsLabel.place(relx=.09, rely=0.025)
@@ -309,22 +299,16 @@ class Main:
                 sensor.Refresh(True)
                 if self.graphingStatus:
 
-                    if sensor.Graph1Status.get():
-                        self.axes1.plot(sensor.sensorData, label=sensor.args[0])
-                        self.figure1.canvas.draw()
-                        legendsGraph1.append(sensor.args[0])
-                    if sensor.Graph2Status.get():
-                        self.axes2.plot(sensor.sensorData, label=sensor.args[0])
-                        self.figure2.canvas.draw()
-                        legendsGraph2.append(sensor.args[0])
-                    if sensor.Graph3Status.get():
-                        self.axes3.plot(sensor.sensorData, label=sensor.args[0])
-                        self.figure3.canvas.draw()
-                        legendsGraph3.append(sensor.args[0])
-                    if sensor.Graph4Status.get():
-                        self.axes4.plot(sensor.sensorData, label=sensor.args[0])
-                        self.figure4.canvas.draw()
-                        legendsGraph4.append(sensor.args[0])
+                    def updateGraph(sensor, graphStatus, axis, canvas, legendsGraph):
+                        if graphStatus:
+                            axis.plot(sensor.sensorData, label=sensor.args[0])
+                            canvas.draw()
+                            legendsGraph.append(sensor.args[0])
+
+                    updateGraph(sensor, sensor.Graph1Status.get(), self.axes1, self.figure1.canvas, legendsGraph1)
+                    updateGraph(sensor, sensor.Graph2Status.get(), self.axes2, self.figure2.canvas, legendsGraph2)
+                    updateGraph(sensor, sensor.Graph3Status.get(), self.axes3, self.figure3.canvas, legendsGraph3)
+                    updateGraph(sensor, sensor.Graph4Status.get(), self.axes4, self.figure4.canvas, legendsGraph4)
 
             if legendsGraph1:
                 self.axes1.legend(legendsGraph1, loc="upper left")
