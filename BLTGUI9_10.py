@@ -65,6 +65,15 @@ DANGERZONE = 300
 NODEID = 8
 VERIFICATIONID = 166
 
+class Graph:
+    def __init__(self, label, parent, relx, rely, bg=black):
+        self.label = label
+        self.frame = Canvas(parent, bg=bg)
+        self.frame.place(relx=relx, rely=rely, relwidth=.225, relheight=2 / 5)
+        self.figure = Figure(figsize=(5, 5), dpi=100)
+        self.canvasfigure = FigureCanvasTkAgg(self.figure, master=self.frame)
+        self.axis = self.figure.add_subplot()
+        self.canvasfigure.get_tk_widget().pack()
 
 class Main:
     # Data needed to set up the Valve, Sensors, States
@@ -284,44 +293,26 @@ class Main:
         if self.refreshCounter >= REFRESHRATE:
             self.refreshCounter = 0
             # for each sensor in the sensor list. refresh the label
-            self.axes1.clear()
-            self.axes2.clear()
-            self.axes3.clear()
-            self.axes4.clear()
-            legendsGraph1 = []
-            legendsGraph2 = []
-            legendsGraph3 = []
-            legendsGraph4 = []
+            legendsGraphs = []
+            for i in range(len(self.graphs)):
+                legendsGraphs.append([])
+                self.graphs[i].axis.clear()
             
             #self.ThrottlePoints()
             
             for sensor in self.sensorList:
                 sensor.Refresh(True)
                 if self.graphingStatus:
+                    for status, legend, graph in zip(sensor.GraphStatus, legendsGraphs, self.graphs):
+                        if status.get():
+                            graph.axis.plot(sensor.sensorData, label=sensor.args[0])
+                            graph.figure.canvas.draw()
+                            legend.append(sensor.args[0])
 
-                    def updateGraph(sensor, graphStatus, axis, canvas, legendsGraph):
-                        if graphStatus:
-                            axis.plot(sensor.sensorData, label=sensor.args[0])
-                            canvas.draw()
-                            legendsGraph.append(sensor.args[0])
-
-                    updateGraph(sensor, sensor.Graph1Status.get(), self.axes1, self.figure1.canvas, legendsGraph1)
-                    updateGraph(sensor, sensor.Graph2Status.get(), self.axes2, self.figure2.canvas, legendsGraph2)
-                    updateGraph(sensor, sensor.Graph3Status.get(), self.axes3, self.figure3.canvas, legendsGraph3)
-                    updateGraph(sensor, sensor.Graph4Status.get(), self.axes4, self.figure4.canvas, legendsGraph4)
-
-            if legendsGraph1:
-                self.axes1.legend(legendsGraph1, loc="upper left")
-                self.figure1.canvas.draw()
-            if legendsGraph2:
-                self.axes2.legend(legendsGraph2, loc="upper left")
-                self.figure2.canvas.draw()
-            if legendsGraph3:
-                self.axes3.legend(legendsGraph3, loc="upper left")
-                self.figure3.canvas.draw()
-            if legendsGraph4:
-                    self.axes4.legend(legendsGraph4, loc="upper left")
-                    self.figure4.canvas.draw()
+            for legend, graph in zip(legendsGraphs, self.graphs):
+                if legend:
+                    graph.axis.legend(legend, loc="upper left")
+                    graph.figure.canvas.draw()
 
             for valve in self.valveList:
                 valve.refresh_valve()
@@ -366,38 +357,17 @@ class Main:
         #print(self.graphingStatus)
         self.graphingStatus = not self.graphingStatus
 
-    def graphs(self):
+    def GenerateGraphs(self):
         self.pauseButton = Button(self.parentSecondScreen, font=("Verdana", 10), fg='red', bg='black',
                                   text="GRAPH PAUSE\nBUTTON", command=lambda: self.PauseGraphs())
         self.pauseButton.place(relx=.85, rely=.45)
 
-        self.graphFrame1 = Canvas(self.parentMainScreen, bg=black)
-        self.graphFrame1.place(relx=.775, rely=.1, relwidth=.225, relheight=2 / 5)
-        self.figure1 = Figure(figsize=(5, 5), dpi=100)
-        self.canvasfigure1 = FigureCanvasTkAgg(self.figure1, master=self.graphFrame1)
-        self.axes1 = self.figure1.add_subplot()
-        self.canvasfigure1.get_tk_widget().pack()
-
-        self.graphFrame2 = Canvas(self.parentMainScreen, bg=black)
-        self.graphFrame2.place(relx=.775, rely=.6, relwidth=.225, relheight=2 / 5)
-        self.figure2 = Figure(figsize=(5, 5), dpi=100)
-        self.canvasfigure2 = FigureCanvasTkAgg(self.figure2, master=self.graphFrame2)
-        self.axes2 = self.figure2.add_subplot()
-        self.canvasfigure2.get_tk_widget().pack()
-
-        self.graphFrame3 = Canvas(self.parentSecondScreen, bg=black)
-        self.graphFrame3.place(relx=.775, rely=.05, relwidth=.225, relheight=2 / 5)
-        self.figure3 = Figure(figsize=(5, 5), dpi=100)
-        self.canvasfigure3 = FigureCanvasTkAgg(self.figure3, master=self.graphFrame3)
-        self.axes3 = self.figure3.add_subplot()
-        self.canvasfigure3.get_tk_widget().pack()
-
-        self.graphFrame4 = Canvas(self.parentSecondScreen, bg=black)
-        self.graphFrame4.place(relx=.775, rely=.5, relwidth=.225, relheight=2 / 5)
-        self.figure4 = Figure(figsize=(5, 5), dpi=100)
-        self.canvasfigure4 = FigureCanvasTkAgg(self.figure4, master=self.graphFrame4)
-        self.axes4 = self.figure4.add_subplot()
-        self.canvasfigure4.get_tk_widget().pack()
+        self.graphs = [
+            Graph("Graph 1", self.parentMainScreen,   .775, .1 ),
+            Graph("Graph 2", self.parentMainScreen,   .775, .6 ),
+            Graph("Graph 3", self.parentSecondScreen, .775, .05),
+            Graph("Graph 4", self.parentSecondScreen, .775, .5 ),
+        ]
 
     def ValveSettingsPopUp(self):
         """
@@ -686,22 +656,21 @@ class Main:
     def Menus(self, parent, app):
         self.menu = Menu(parent, background="grey50", fg=black)
         self.fileMenu = Menu(self.menu)
-        self.graphs = Menu(self.menu)
-        self.graphMenu1 = Menu(self.menu)
-        self.graphMenu2 = Menu(self.menu)
-        self.graphMenu3 = Menu(self.menu)
-        self.graphMenu4 = Menu(self.menu)
+
+        # Dropdown menus in the top left
+        self.graphsMenu = Menu(self.menu)
+        self.graphsSubmenus = [Menu(self.menu) for g in self.graphs]
+
         self.SetPoints = Menu(self.menu)
         self.TeensyNodes = Menu(self.menu)
         self.DataRequests = Menu(self.menu)
         self.SensorSets = Menu(self.menu)
         #self.AutoSequenceMenu = Menu(self.menu)
 
-        self.graphs.add_cascade(label="Graph 1", menu=self.graphMenu1)
-        self.graphs.add_cascade(label="Graph 2", menu=self.graphMenu2)
-        self.graphs.add_cascade(label="Graph 3", menu=self.graphMenu3)
-        self.graphs.add_cascade(label="Graph 4", menu=self.graphMenu4)
-        self.menu.add_cascade(label="Graphs", menu=self.graphs)
+        for menu, graph in zip(self.graphsSubmenus, self.graphs):
+            self.graphsMenu.add_cascade(label=graph.label, menu=menu)
+        
+        self.menu.add_cascade(label="Graphs", menu=self.graphsMenu)
         self.menu.add_cascade(label="Set Points", menu=self.SetPoints)
         self.menu.add_cascade(label="Teensy Nodes", menu=self.TeensyNodes)
         self.menu.add_cascade(label="Data Requests", menu=self.DataRequests)
@@ -719,10 +688,8 @@ class Main:
         app.config(menu=self.menu)
 
         for sensor in self.sensorList:
-            self.graphMenu1.add_checkbutton(label=sensor.args[0], variable=sensor.Graph1Status)
-            self.graphMenu2.add_checkbutton(label=sensor.args[0], variable=sensor.Graph2Status)
-            self.graphMenu3.add_checkbutton(label=sensor.args[0], variable=sensor.Graph3Status)
-            self.graphMenu4.add_checkbutton(label=sensor.args[0], variable=sensor.Graph4Status)
+            for menu, status in zip(self.graphsSubmenus, sensor.GraphStatus):
+                menu.add_checkbutton(label=sensor.args[0], variable=status)
 
     def run(self):  # This takes place of the init
         """ TKinter Initialization"""
@@ -754,7 +721,7 @@ class Main:
         self.propLinePlacement()
         self.AutoSequence()
         self.StateReset()
-        self.graphs()
+        self.GenerateGraphs()
         self.Vent = States(self.parentMainScreen, Main.Vent)
         self.Vent.VentAbortInstantiation()
         self.Abort = States(self.parentMainScreen, Main.Abort)
@@ -765,7 +732,7 @@ class Main:
 
         # Instantiates Every Sensor
         for sensor in Main.sensors:
-            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive))
+            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.graphs))
 
         # Instantiates Every Sensor
         for controller in Main.Controllers:
@@ -825,7 +792,7 @@ class Main:
 class Sensors:
     numOfSensors = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive):
+    def __init__(self, parent, args, SecondScreen, canReceive, graphs):
         self.canReceive = canReceive
         self.parent = parent
         self.SecondScreen = SecondScreen
@@ -837,10 +804,7 @@ class Sensors:
 
         self.color = args[7]
         self.sensorData = [0] * 100
-        self.Graph1Status = IntVar()
-        self.Graph2Status = IntVar()
-        self.Graph3Status = IntVar()
-        self.Graph4Status = IntVar()
+        self.GraphStatus = [IntVar() for g in graphs]
         self.index = 0
         self.name = args[0]
         # self.dataList = []
