@@ -14,33 +14,6 @@ from matplotlib.backends.backend_tkagg import (
 )
 from matplotlib import style
 
-# # This code is initializing the bus variable with the channel and bustype.
-# # noinspection PyTypeChecker
-
-CanStatus = False
-try:
-    import can  # /////////////////////////////////////////////////////////////////////////
-
-    #bus = can.interface.Bus(channel='can0', bustype='socketcan')  # ///////////////
-    bus = can.interface.Bus(channel='virtual', bustype='virtual')  # ///////////////
-    CanStatus = True
-    from CanReceive import CanReceive
-    canReceive = None
-
-except AttributeError:
-    CanStatus = False
-except ModuleNotFoundError:
-    pass
-
-
-def CanBusSend(ID, DATA):
-    print(DATA)
-    if CanStatus:
-        msg = can.Message(arbitration_id=ID,
-                          data=DATA, is_extended_id=False)
-        bus.send(msg)
-
-
 style.use("dark_background")
 
 REFRESHRATE = 250  # ms
@@ -148,8 +121,9 @@ class Main:
     # System starts off in a passive state
     CurrState = "Passive"
 
-    def __init__(self, canReceive):
+    def __init__(self, canReceive, canSend):
         self.canReceive = canReceive
+        self.canSend = canSend
 
         self.appMainScreen = None
         self.parentMainScreen = None
@@ -341,7 +315,7 @@ class Main:
         prevState = None
         # Every state in State Array gets instantiated and a Button is made for it
         for i in range(len(Main.States)):
-            button = States(self.parentMainScreen, Main.States[i], prevState=prevState)
+            button = States(self.parentMainScreen, Main.States[i], self.canSend, prevState=prevState)
             # Creates the button and places it into the Frame. May change name later since it really inst instantiating
             button.MainStateInstantiation()
             # Updates the prevState so that the next state may be able to access it. Its pretty much a Linked List
@@ -521,7 +495,7 @@ class Main:
         
         if Function in fptr:
             self.ValveDataEntryButton.config(
-                command=lambda: fptr[Function](self.ValveSetData, self.statusLabel)
+                command=lambda: fptr[Function](self.ValveSetData, self.ValveStatusLabel)
             )
 
     def SensorSetFunction(self, Function):
@@ -614,7 +588,7 @@ class Main:
 
     def NodeReset(self):
         DATA = [254]
-        CanBusSend(1, DATA)
+        self.canSend(1, DATA)
 
     def Menus(self, parent, app):
         self.menu = Menu(parent, background="grey50", fg=black)
@@ -685,21 +659,21 @@ class Main:
         self.AutoSequence()
         self.StateReset()
         self.GenerateGraphs()
-        self.Vent = States(self.parentMainScreen, Main.Vent)
+        self.Vent = States(self.parentMainScreen, Main.Vent, self.canSend)
         self.Vent.VentAbortInstantiation()
-        self.Abort = States(self.parentMainScreen, Main.Abort)
+        self.Abort = States(self.parentMainScreen, Main.Abort, self.canSend)
         self.Abort.VentAbortInstantiation()
         # Instantiates Every Valve
         for valve in Main.valves:
-            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive))
+            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend))
 
         # Instantiates Every Sensor
         for sensor in Main.sensors:
-            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.graphs))
+            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.canSend, self.graphs))
 
         # Instantiates Every Sensor
         for controller in Main.Controllers:
-            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive))
+            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive, self.canSend))
 
         self.Menus(self.parentMainScreen, self.appMainScreen)
         self.Menus(self.parentSecondScreen, self.appSecondScreen)
@@ -755,13 +729,14 @@ class Main:
 class Sensors:
     numOfSensors = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, graphs):
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs):
         # [ Sensor Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID, labelColor]
         #"High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
 
         self.name, self.relx, self.rely, self.xoff, self.yoff, self.idRaw, self.idConv, self.color = args
 
         self.canReceive = canReceive
+        self.canSend = canSend
         self.parent = parent
         self.SecondScreen = SecondScreen
 
@@ -796,25 +771,17 @@ class Sensors:
     def resetAll(self, var, label):
         settingID = 0
         DATA = [VERIFICATIONID, self.idRaw, settingID, ]
-        CanBusSend(NODEID, DATA)
+        self.canSend(NODEID, DATA)
         label.config(text="Command Sent!", fg="green")
 
     def setSampleRate(self, var, label):
         val = var.get()
         if isinstance(val, str):
             print(val.upper())
-            if val.upper() == "SLOW":
-                settingID = 1
-                DATA = [VERIFICATIONID, self.idRaw, settingID, ]
-                CanBusSend(NODEID, DATA)
-            elif val.upper() == "MEDIUM":
-                settingID = 2
-                DATA = [VERIFICATIONID, self.idRaw, settingID, ]
-                CanBusSend(NODEID, DATA)
-            elif val.upper() == "Fast":
-                settingID = 3
-                DATA = [VERIFICATIONID, self.idRaw, settingID, ]
-                CanBusSend(NODEID, DATA)
+            modes = dict(SLOW=1, MEDIUM=2, Fast=3)
+            if val.upper() in modes:
+                DATA = [VERIFICATIONID, self.idRaw, modes[val.upper()], ]
+                self.canSend(NODEID, DATA)
 
         else:
             print(val)
@@ -824,7 +791,7 @@ class Sensors:
         if self.intTypeCheck(var, int, label, 8):
             binstr = bitstring.BitArray(int=int(var.get()), length=8).bin
             DATA = [VERIFICATIONID, self.idRaw, settingID, int(binstr[0:8], 2)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
 
     def intTypeCheck(self, var, type, label, size):
         num = var.get()
@@ -870,7 +837,7 @@ class Sensors:
 class Valves:
     numOfValves = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive):
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend):
         # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
         #['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
         name, relx, rely, obj_id, hp_channel, comm_off, comm_on, color, sensorID, nodeID = args
@@ -879,6 +846,7 @@ class Valves:
         self.color, self.sensorID, self.nodeID = color, sensorID, nodeID
 
         self.canReceive = canReceive
+        self.canSend = canSend
         self.parent = parent
         self.SecondScreen = SecondScreen
         self.state = False
@@ -922,16 +890,16 @@ class Valves:
         print(self.name, self.status)
         if self.state:
             DATA = [self.commandOFF]
-            CanBusSend(self.commandID, DATA)
+            self.canSend(self.commandID, DATA)
         else:
 
             DATA = [self.commandON]
-            CanBusSend(self.commandID, DATA)
+            self.canSend(self.commandID, DATA)
 
     def resetAll(self, var, label):
         settingID = 0
         DATA = [VERIFICATIONID, self.id, settingID]
-        CanBusSend(NODEID, DATA)
+        self.canSend(NODEID, DATA)
         label.config(text="Command Sent!", fg="green")
 
     def setValveType(self, var, label):
@@ -941,16 +909,16 @@ class Valves:
             print(val.upper())
             if val.upper() == "NORMALLY CLOSED":
                 DATA = [VERIFICATIONID, self.id, settingID, 0]
-                CanBusSend(NODEID, DATA)
+                self.canSend(NODEID, DATA)
             elif val.upper() == "NORMALLY OPEN":
                 DATA = [VERIFICATIONID, self.id, settingID, 1]
-                CanBusSend(NODEID, DATA)
+                self.canSend(NODEID, DATA)
 
     def updateSetting(self, var, label, settingID, length=32):
         if self.intTypeCheck(var, int, label, length):
             binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
             DATA = [VERIFICATIONID, self.id, settingID] + [int(binstr[i:i+8], 2) for i in range(0, length, 8)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
 
     def setFullDutyTime(self, var, label):
         self.updateSetting(var, label, 2, length=32)
@@ -1034,7 +1002,7 @@ class States:
 
     # Parent is the Parent Frame
     # args is the data in the States array.
-    def __init__(self, parent, args, prevState=None):
+    def __init__(self, parent, args, canSend, prevState=None):
         # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
         #["Active",              2, 1,  3,  5, False, 1],
         self.stateName, self.stateID, self.commandID, self.commandOFF, self.commandON, \
@@ -1043,6 +1011,7 @@ class States:
         self.parent = parent
         self.state = False
         self.prevState = prevState
+        self.canSend = canSend
         self.relXCor = 0
         self.relYCor = 0
         self.relHeight = 1
@@ -1115,21 +1084,22 @@ class States:
                 GUI.StateReset()
             self.state = False
             DATA = [self.commandOFF]
-            CanBusSend(self.commandID, DATA)
+            self.canSend(self.commandID, DATA)
         else:
             self.button.config(fg='green')
             self.state = True
             DATA = [self.commandON]
-            CanBusSend(self.commandID, DATA)
+            self.canSend(self.commandID, DATA)
 
 
 class Controller:
     TankControllers = 0
 
-    def __init__(self, args, Screen1, Screen2, canReceive):
+    def __init__(self, args, Screen1, Screen2, canReceive, canSend):
         #["Tank Controller HiPress", 2, False, black],
         self.name, self.id, self.isAPropTank, self.color = args
         self.canReceive = canReceive
+        self.canSend = canSend
         self.parentMain = Screen1
         self.parent2 = Screen2
         
@@ -1190,19 +1160,19 @@ class Controller:
                 binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
             DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
                     int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
 
     def updateActuation(self, var, label, settingID, length=32):
         if self.intTypeCheck(var, int, label, length):
             var = int(var.get())* 1000
             binstr = bitstring.BitArray(int=int(var), length=length).bin
             DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
         
     def resetAll(self, var, label):
         settingID = 0
         DATA = [VERIFICATIONID, self.id, settingID]
-        CanBusSend(NODEID, DATA)
+        self.canSend(NODEID, DATA)
         print("RESET")
         label.config(text="Command Sent!", fg="green")
 
@@ -1225,12 +1195,12 @@ class Controller:
             throttle = bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin
             DATA = [VERIFICATIONID, self.id, settingID, int(timebin[0:8], 2), int(timebin[8:16], 2),
                     int(throttle[0:8], 2), int(throttle[8:16], 2)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
 
     def throttleProgramReset(self, var, label):
         settingID = 6
         DATA = [VERIFICATIONID, self.id, settingID]
-        CanBusSend(NODEID, DATA)
+        self.canSend(NODEID, DATA)
         label.config(text="Command Sent!", fg="green")
 
     # This one is too different to generalize.
@@ -1241,7 +1211,7 @@ class Controller:
             binstr.append(bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin)
             DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
                     int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
 
     def setK_p(self, var, label):
         self.updateSetting(var, label, 1)
@@ -1271,7 +1241,7 @@ class Controller:
             binstr = bitstring.BitArray(int=int(var), length=32).bin
             DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
                     int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+            self.canSend(NODEID, DATA)
 
     def intTypeCheck(self, var, type, label, size):
         num = var.get()
@@ -1344,11 +1314,43 @@ def isint(x):
 Starts Code
 """
 
-if CanStatus:
-    #canReceive = CanReceive(channel='can0', bustype='socketcan')
-    canReceive = CanReceive(channel='virtual', bustype='virtual')
+# # This code is initializing the bus variable with the channel and bustype.
+# # noinspection PyTypeChecker
 
-GUI = Main(canReceive)
+CanStatus = False
+try:
+    import can  # /////////////////////////////////////////////////////////////////////////
+    from CanReceive import CanReceive
+    CanStatus = True
+
+except AttributeError:
+    CanStatus = False
+except ModuleNotFoundError:
+    pass
+
+class CanSend:
+    def __init__(self, **busargs):
+        self.bus = can.interface.Bus(**busargs)
+
+    def __call__(self, ID, DATA):
+        print(DATA)
+        if CanStatus:
+            msg = can.Message(arbitration_id=ID,
+                            data=DATA, is_extended_id=False)
+            bus.send(msg)
+
+#bus = can.interface.Bus(channel='can0', bustype='socketcan')  # ///////////////
+bus = can.interface.Bus(channel='virtual', bustype='virtual')  # ///////////////
+
+if CanStatus:
+
+    #busargs = dict(channel='can0', bustype='socketcan')
+    busargs = dict(channel='virtual', bustype='virtual')
+    
+    canReceive = CanReceive(**busargs)
+    canSend = CanSend(**busargs)
+
+GUI = Main(canReceive, canSend)
 # GUI.run()
 GUIThread = Thread(target=GUI.run)
 GUIThread.daemon = True
