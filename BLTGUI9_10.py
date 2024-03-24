@@ -1150,72 +1150,51 @@ class Controller:
         
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
         if self.isAPropTank:
-            self.KpLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Kp")
-            self.KpLabel.place(relx=.025 + Controller.TankControllers * .2, rely=0.525)
-            self.KiLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Ki")
-            self.KiLabel.place(relx=.075 + Controller.TankControllers * .2, rely=0.525)
-            self.KdLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Kd")
-            self.KdLabel.place(relx=.125 + Controller.TankControllers * .2, rely=0.525)
-            self.EpLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Ep")
-            self.EpLabel.place(relx=.025 + Controller.TankControllers * .2, rely=0.6)
-            self.EiLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Ei")
-            self.EiLabel.place(relx=.075 + Controller.TankControllers * .2, rely=0.6)
-            self.EdLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Ed")
-            self.EdLabel.place(relx=.125 + Controller.TankControllers * .2, rely=0.6)
-            self.PIDSUMLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="PID SUM")
-            self.PIDSUMLabel.place(relx=.025 + Controller.TankControllers * .2, rely=0.7)
-            self.TargetValueLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Target\nValue")
-            self.TargetValueLabel.place(relx=.075 + Controller.TankControllers * .2, rely=0.7)
-            self.ThresholdLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Threshold")
-            self.ThresholdLabel.place(relx=.125 + Controller.TankControllers * .2, rely=0.7)
-            self.EnergizeTime = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Energize\nTime")
-            self.EnergizeTime.place(relx=.025 + Controller.TankControllers * .2, rely=0.8)
-            self.DenergizeTime = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Denergize\nTime")
-            self.DenergizeTime.place(relx=.075 + Controller.TankControllers * .2, rely=0.8)
-            self.VentFailSafePressure = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Vent Fail\nSafe Pressure")
-            self.VentFailSafePressure.place(relx=.125 + Controller.TankControllers * .2, rely=0.8)
-            self.KpLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.KpLabel2.place(relx=.025 + Controller.TankControllers * .2, rely=0.55)
-            self.KiLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.KiLabel2.place(relx=.075 + Controller.TankControllers * .2, rely=0.55)
-            self.KdLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.KdLabel2.place(relx=.125 + Controller.TankControllers * .2, rely=0.55)
-            self.EpLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.EpLabel2.place(relx=.025 + Controller.TankControllers * .2, rely=0.65)
-            self.EiLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.EiLabel2.place(relx=.075 + Controller.TankControllers * .2, rely=0.65)
-            self.EdLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.EdLabel2.place(relx=.125 + Controller.TankControllers * .2, rely=0.65)
-            self.PIDSUMLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.PIDSUMLabel2.place(relx=.025 + Controller.TankControllers * .2, rely=0.75)
-            self.TargetValueLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.TargetValueLabel2.place(relx=.075 + Controller.TankControllers * .2, rely=0.75)
-            self.ThresholdLabel2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.ThresholdLabel2.place(relx=.125 + Controller.TankControllers * .2, rely=0.75)
-            self.EnergizeTime2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.EnergizeTime2.place(relx=.025 + Controller.TankControllers * .2, rely=0.85)
-            self.DenergizeTime2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.DenergizeTime2.place(relx=.075 + Controller.TankControllers * .2, rely=0.85)
-            self.VentFailSafePressure2 = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-            self.VentFailSafePressure2.place(relx=.125 + Controller.TankControllers * .2, rely=0.85)
+            buffer = [
+                ["KpLabel",              "Kp",                       .025, 0.525],
+                ["KiLabel",              "Ki",                       .075, 0.525],
+                ["KdLabel",              "Kd",                       .125, 0.525],
+                ["EpLabel",              "Ep",                       .025, 0.6],
+                ["EiLabel",              "Ei",                       .075, 0.6],
+                ["EdLabel",              "Ed",                       .125, 0.6],
+                ["PIDSUMLabel",          "PID SUM",                  .025, 0.7],
+                ["TargetValueLabel",     "Target\nValue",            .075, 0.7],
+                ["ThresholdLabel",       "Threshold",                .125, 0.7],
+                ["EnergizeTime",         "Energize\nTime",           .025, 0.8],
+                ["DenergizeTime",        "Denergize\nTime",          .075, 0.8],
+                ["VentFailSafePressure", "Vent Fail\nSafe Pressure", .125, 0.8],
+            ]
+
+            self.labels = dict()
+            for name1, text, relx, rely in buffer:
+                self.labels[name1] = Label(self.parent2, fg=self.color, bg=black, font=aFont, text=text)
+                self.labels[name1].place(relx=relx + Controller.TankControllers * .2, rely=rely)
+
+                name2 = name1 + '2'
+                self.labels[name2] = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
+                self.labels[name2].place(relx=relx + Controller.TankControllers * .2, rely=rely + 0.05)
+
             Controller.TankControllers += 1
         if "Engine" in self.name:
-            self.LOXMVTime = Label(self.parent2, text = "LOX MV\nTime (ms)", fg = blue, bg = black, font = aFont)
-            self.LOXMVTime.place(relx = 0.45, rely = 0.625)
-            self.LOXMVTime2 = Label(self.parent2, text = str(self.canReceive.Controllers[self.id][3]/1000), fg = orange, bg = black, font = ("Verdana", 9))
-            self.LOXMVTime2.place(relx = 0.45, rely = 0.675)
-            self.FuelMVTime = Label(self.parent2, text = "Fuel MV\nTime (ms)", fg = red, bg = black, font = aFont)
-            self.FuelMVTime.place(relx = 0.525, rely = 0.625)
-            self.FuelMVTime2 = Label(self.parent2, text = str(self.canReceive.Controllers[self.id][2]/1000), fg = orange, bg = black, font = ("Verdana", 9))
-            self.FuelMVTime2.place(relx = 0.525, rely = 0.675)
-            self.IGN1Time = Label(self.parent2, text = "IGN 1\nTime (ms)", fg = green, bg = black, font = aFont)
-            self.IGN1Time.place(relx = 0.45, rely = 0.525)
-            self.IGN1Time2 = Label(self.parent2, text = str(self.canReceive.Controllers[self.id][4]/1000), fg = orange, bg = black, font = ("Verdana", 9))
-            self.IGN1Time2.place(relx = 0.45, rely = 0.575)
-            self.IGN2Time = Label(self.parent2, text = "IGN 2\nTime (ms)", fg = green, bg = black, font = aFont)
-            self.IGN2Time.place(relx = 0.525, rely = 0.525)
-            self.IGN2Time2 = Label(self.parent2, text = str(self.canReceive.Controllers[self.id][5]/1000), fg = orange, bg = black, font = ("Verdana", 9))
-            self.IGN2Time2.place(relx = 0.525, rely = 0.575)
+
+            self.Times = dict()
+
+            buffer = [
+                ["LOXMVTime",  "LOX MV\nTime (ms)",  blue,  0.45,  0.625, 3],
+                ["FuelMVTime", "Fuel MV\nTime (ms)", red,   0.525, 0.625, 2],
+                ["IGN1Time",   "IGN 1\nTime (ms)",   green, 0.45,  0.525, 4],
+                ["IGN2Time",   "IGN 2\nTime (ms)",   green, 0.525, 0.525, 5],
+            ]
+            
+            for name1, text1, fg, relx, rely, cid in buffer:
+                self.Times[name1] = Label(self.parent2, text=text1, fg=fg, bg=black, font=aFont)
+                self.Times[name1].place(relx=relx, rely=rely)
+
+                name2 = name1 + '2'
+                text2 = str(self.canReceive.Controllers[self.id][cid]/1000)
+                self.Times[name2] = Label(self.parent2, text=text2, fg=orange, bg=black, font=("Verdana", 9))
+                self.Times[name2].place(relx=relx, rely=rely + 0.05)
+
         # self.EMA.place(relx=.01, rely=0.575, relwidth=1 / 10, relheight=.02)
 
         
@@ -1378,23 +1357,23 @@ class Controller:
     def Refresh(self):
         if self.isAPropTank:
             if True:#CanStatus:
-                self.KpLabel2.config(text=self.canReceive.Controllers[self.id][2])
-                self.KiLabel2.config(text=self.canReceive.Controllers[self.id][3])
-                self.KdLabel2.config(text=self.canReceive.Controllers[self.id][4])
-                self.EpLabel2.config(text=round(self.canReceive.Controllers[self.id][6]))
-                self.EiLabel2.config(text=round(self.canReceive.Controllers[self.id][8]))
-                self.EdLabel2.config(text=round(self.canReceive.Controllers[self.id][10]))
-                self.PIDSUMLabel2.config(text=round(self.canReceive.Controllers[self.id][13]))
-                self.TargetValueLabel2.config(text=self.canReceive.Controllers[self.id][12])
-                self.ThresholdLabel2.config(text=self.canReceive.Controllers[self.id][5])
-                self.EnergizeTime2.config(text=self.canReceive.Controllers[self.id][14])
-                self.DenergizeTime2.config(text=self.canReceive.Controllers[self.id][15])
-                self.VentFailSafePressure2.config(text=self.canReceive.Controllers[self.id][16])
+                self.labels['KpLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 2])
+                self.labels['KiLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 3])
+                self.labels['KdLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 4])
+                self.labels['EpLabel2'].config(             text=round(self.canReceive.Controllers[self.id][ 6]))
+                self.labels['EiLabel2'].config(             text=round(self.canReceive.Controllers[self.id][ 8]))
+                self.labels['EdLabel2'].config(             text=round(self.canReceive.Controllers[self.id][10]))
+                self.labels['PIDSUMLabel2'].config(         text=round(self.canReceive.Controllers[self.id][13]))
+                self.labels['TargetValueLabel2'].config(    text=      self.canReceive.Controllers[self.id][12])
+                self.labels['ThresholdLabel2'].config(      text=      self.canReceive.Controllers[self.id][ 5])
+                self.labels['EnergizeTime2'].config(        text=      self.canReceive.Controllers[self.id][14])
+                self.labels['DenergizeTime2'].config(       text=      self.canReceive.Controllers[self.id][15])
+                self.labels['VentFailSafePressure2'].config(text=      self.canReceive.Controllers[self.id][16])
         elif "Engine" in self.name:
-            self.LOXMVTime2.config(text=self.canReceive.Controllers[self.id][3]/1000)
-            self.FuelMVTime2.config(text=self.canReceive.Controllers[self.id][2]/1000)
-            self.IGN1Time2.config(text=self.canReceive.Controllers[self.id][4]/1000)
-            self.IGN2Time2.config(text=self.canReceive.Controllers[self.id][5]/1000)
+            self.Times['LOXMVTime2'].config( text=self.canReceive.Controllers[self.id][3]/1000)
+            self.Times['FuelMVTime2'].config(text=self.canReceive.Controllers[self.id][2]/1000)
+            self.Times['IGN1Time2'].config(  text=self.canReceive.Controllers[self.id][4]/1000)
+            self.Times['IGN2Time2'].config(  text=self.canReceive.Controllers[self.id][5]/1000)
 
 def isfloat(x):
     try:
