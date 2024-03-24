@@ -946,41 +946,26 @@ class Valves:
                 DATA = [VERIFICATIONID, self.id, settingID, 1]
                 CanBusSend(NODEID, DATA)
 
-    def setFullDutyTime(self, var, label):
-        settingID = 2
-        if self.intTypeCheck(var, int, label, 32):
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
+    def updateSetting(self, var, label, settingID, length=32):
+        if self.intTypeCheck(var, int, label, length):
+            binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
+            DATA = [VERIFICATIONID, self.id, settingID] + [int(binstr[i:i+8], 2) for i in range(0, length, 8)]
             CanBusSend(NODEID, DATA)
+
+    def setFullDutyTime(self, var, label):
+        self.updateSetting(var, label, 2, length=32)
 
     def setFullDutyCyclePWM(self, var, label):
-        settingID = 3
-        if self.intTypeCheck(var, int, label, 16):
-            binstr = bitstring.BitArray(int=int(var.get()), length=16).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 3, length=16)
 
     def setHoldDutyCyclePWM(self, var, label):
-        settingID = 4
-        if self.intTypeCheck(var, int, label, 8):
-            binstr = bitstring.BitArray(int=int(var.get()), length=8).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 4, length=8)
 
     def setWarmDutyCyclePWM(self, var, label):
-        settingID = 5
-        if self.intTypeCheck(var, int, label, 16):
-            binstr = bitstring.BitArray(int=int(var.get()), length=16).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 5, length=16)
 
     def setLiveOutTime(self, var, label):
-        settingID = 1
-        if self.intTypeCheck(var, int, label, 32):
-            binstr = bitstring.BitArray(int=int(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 1, length=32)
 
     def intTypeCheck(self, var, type, label, size):
         num = var.get()
@@ -1197,6 +1182,22 @@ class Controller:
 
         # self.EMA.place(relx=.01, rely=0.575, relwidth=1 / 10, relheight=.02)
 
+    def updateSetting(self, var, label, settingID, length=32, Type=float):
+        if self.intTypeCheck(var, Type, label, length):
+            if Type == float:
+                binstr = bitstring.BitArray(float=float(var.get()), length=length).bin
+            if Type == int:
+                binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
+            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
+                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
+            CanBusSend(NODEID, DATA)
+
+    def updateActuation(self, var, label, settingID, length=32):
+        if self.intTypeCheck(var, int, label, length):
+            var = int(var.get())* 1000
+            binstr = bitstring.BitArray(int=int(var), length=length).bin
+            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
+            CanBusSend(NODEID, DATA)
         
     def resetAll(self, var, label):
         settingID = 0
@@ -1206,36 +1207,16 @@ class Controller:
         label.config(text="Command Sent!", fg="green")
 
     def setFuelMVAutosequenceActuation(self, var, label):
-        settingID = 1
-        if self.intTypeCheck(var, int, label, 32):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            CanBusSend(NODEID, DATA)
+        self.updateActuation(var, label, 1)
 
     def setLoxMVAutosequenceActuation(self, var, label):
-        settingID = 2
-        if self.intTypeCheck(var, int, label, 32):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            CanBusSend(NODEID, DATA)
+        self.updateActuation(var, label, 2)
 
     def setIgniter1ActuationActuation(self, var, label):
-        settingID = 3
-        if self.intTypeCheck(var, int, label, 32):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            CanBusSend(NODEID, DATA)
+        self.updateActuation(var, label, 3)
 
     def setIgniter2ActuationActuation(self, var, label):
-        settingID = 4
-        if self.intTypeCheck(var, int, label, 32):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            CanBusSend(NODEID, DATA)
+        self.updateActuation(var, label, 4)
 
     def setThrottleProgramPoint(self, time, throttlepoint, label):
         settingID = 5
@@ -1252,6 +1233,7 @@ class Controller:
         CanBusSend(NODEID, DATA)
         label.config(text="Command Sent!", fg="green")
 
+    # This one is too different to generalize.
     def throttleProgramResetSpecific(self, time, throttlepoint, label):
         settingID = 7
         if self.intTypeCheck(time, int, label, 16):
@@ -1262,61 +1244,25 @@ class Controller:
             CanBusSend(NODEID, DATA)
 
     def setK_p(self, var, label):
-        settingID = 1
-        if self.intTypeCheck(var, float, label, 32):
-            binstr = bitstring.BitArray(float=float(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 1)
 
     def setK_i(self, var, label):
-        settingID = 2
-        if self.intTypeCheck(var, float, label, 32):
-            binstr = bitstring.BitArray(float=float(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 2)
 
     def setK_d(self, var, label):
-        settingID = 3
-        if self.intTypeCheck(var, float, label, 32):
-            binstr = bitstring.BitArray(float=float(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 3)
 
     def setControllerThreshold(self, var, label):
-        settingID = 4
-        if self.intTypeCheck(var, float, label, 32):
-            binstr = bitstring.BitArray(float=float(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 4)
 
     def setVentFailsafePressure(self, var, label):
-        settingID = 5
-        if self.intTypeCheck(var, float, label, 32):
-            binstr = bitstring.BitArray(float=float(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 5)
 
     def setValveMinimumEnergizeTime(self, var, label):
-        settingID = 6
-        if self.intTypeCheck(var, int, label, 32):
-            binstr = bitstring.BitArray(int=int(var.get()), length=32).bin
-
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 6, Type=int)
 
     def setValveMinimumDeenergizeTime(self, var, label):
-        settingID = 7
-        if self.intTypeCheck(var, int, label, 32):
-            binstr = bitstring.BitArray(int=int(var.get()), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            CanBusSend(NODEID, DATA)
+        self.updateSetting(var, label, 7, Type=int)
 
     def setCountdownStart(self, var, label):
         settingID = 1
