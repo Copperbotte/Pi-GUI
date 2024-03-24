@@ -506,28 +506,23 @@ class Main:
         self.ValveSetDataEntry = Entry(self.ValveSetsPopUp, background="grey50", textvariable=self.ValveSetData)
         self.ValveSetDataEntry.place(relx=.5, rely=.5)
         self.ValveFunctionLabel.config(text=self.chosenValve.name + " " + self.chosenValveFunction)
+
+        fptr = {
+            "Reset":                self.chosenValve.resetAll,
+            "Valve Type":           self.chosenValve.setValveType,
+            "Full Duty Time":       self.chosenValve.setFullDutyTime,
+            "Full Duty Cycle PWM":  self.chosenValve.setFullDutyCyclePWM,
+            "Hold Duty Cycle PWM":  self.chosenValve.setHoldDutyCyclePWM,
+            "Warm Duty Cycle PWM":  self.chosenValve.setWarmDutyCyclePWM,
+            "Live Out Time":        self.chosenValve.intTypeCheck,
+        }
         if Function == "Reset":
             self.ValveSetDataEntry.destroy()
+        
+        if Function in fptr:
             self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.resetAll(self.ValveSetData, self.statusLabel))
-        elif Function == "Valve Type":
-            self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.setValveType(self.ValveSetData, self.ValveStatusLabel))
-        elif Function == "Full Duty Time":
-            self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.setFullDutyTime(self.ValveSetData, self.ValveStatusLabel))
-        elif Function == "Full Duty Cycle PWM":
-            self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.setFullDutyCyclePWM(self.ValveSetData, self.ValveStatusLabel))
-        elif Function == "Hold Duty Cycle PWM":
-            self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.setHoldDutyCyclePWM(self.ValveSetData, self.ValveStatusLabel))
-        elif Function == "Warm Duty Cycle PWM":
-            self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.setWarmDutyCyclePWM(self.ValveSetData, self.ValveStatusLabel))
-        elif Function == "Live Out Time":
-            self.ValveDataEntryButton.config(
-                command=lambda: self.chosenValve.intTypeCheck(self.ValveSetData, self.ValveStatusLabel))
+                command=lambda: fptr[Function](self.ValveSetData, self.statusLabel)
+            )
 
     def SensorSetFunction(self, Function):
         self.chosenSensorFunction = Function
@@ -539,16 +534,19 @@ class Main:
         self.SensorSetDataEntry = Entry(self.SensorSetsPopUp, background="grey50", textvariable=self.SensorSetData)
         self.SensorSetDataEntry.place(relx=.5, rely=.5)
         self.SensorFunctionLabel.config(text=self.chosenSensor.name + " " + self.chosenSensorFunction)
+
+        fptr = {
+            "Reset":       self.chosenSensor.resetAll,
+            "Sample Rate": self.chosenSensor.setSampleRate,
+            "Alpha EMA":   self.chosenSensor.setAlphaEMA,
+        }
         if Function == "Reset":
             self.SensorSetDataEntry.destroy()
+        
+        if Function in fptr:
             self.SensorDataEntryButton.config(
-                command=lambda: self.chosenSensor.resetAll(self.SensorSetData, self.SensorStatusLabel))
-        elif Function == "Sample Rate":
-            self.SensorDataEntryButton.config(
-                command=lambda: self.chosenSensor.setSampleRate(self.SensorSetData, self.SensorStatusLabel))
-        elif Function == "Alpha EMA":
-            self.SensorDataEntryButton.config(
-                command=lambda: self.chosenSensor.setAlphaEMA(self.SensorSetData, self.SensorStatusLabel))
+                command=lambda: fptr[Function](self.SensorSetData, self.SensorStatusLabel)
+            )
 
     def ControllerSetFunction(self, Function):
         if Function == "ThrottleProgramPoint":
@@ -586,68 +584,33 @@ class Main:
                                                 textvariable=self.ControllerSetData)
             self.ControllerSetDataEntry.place(relx=.5, rely=.5)
             self.ControllerFunctionLabel.config(text=self.chosenController.name + " " + self.chosenControllerFunction)
-            if Function == "Reset":
+
+            fptr = {
+                "Reset":                                        self.chosenController.resetAll,
+                "Kp":                                           self.chosenController.setK_p,
+                "Ki":                                           self.chosenController.setK_i,
+                "Kd":                                           self.chosenController.setK_d,
+                "Controller Threshold":                         self.chosenController.setControllerThreshold,
+                "Vent Fail Safe Pressure":                      self.chosenController.setVentFailsafePressure,
+                "Valve Minimum Energize Time":                  self.chosenController.setValveMinimumEnergizeTime,
+                "Valve Minimum Deenergize Time":                self.chosenController.setValveMinimumDeenergizeTime,
+                "Fuel MV Autosequence Actuation":               self.chosenController.setFuelMVAutosequenceActuation,
+                "Lox MV Autosequence Actuation":                self.chosenController.setLoxMVAutosequenceActuation,
+                "Igniter 1 Actuation":                          self.chosenController.setIgniter1ActuationActuation,
+                "Igniter 2 Actuation":                          self.chosenController.setIgniter2ActuationActuation,
+                "ThrottleProgramPoint":                         self.chosenController.setThrottleProgramPoint,
+                "Throttle Program Reset ALL":                   self.chosenController.throttleProgramReset,
+                "Throttle Program Reset Specific Target Point": self.chosenController.throttleProgramResetSpecific,
+                "Countdown Start":                              self.chosenController.setCountdownStart,
+            }
+
+            if Function == "Reset" or Function == "Throttle Program Reset ALL":
                 self.ControllerSetDataEntry.destroy()
+            
+            if Function in fptr:
                 self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.resetAll(self.ControllerSetData, self.ControllerstatusLabel))
-            elif Function == "Kp":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setK_p(self.ControllerSetData, self.ControllerstatusLabel))
-            elif Function == "Ki":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setK_i(self.ControllerSetData, self.ControllerstatusLabel))
-            elif Function == "Kd":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setK_d(self.ControllerSetData, self.ControllerstatusLabel))
-            elif Function == "Controller Threshold":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setControllerThreshold(self.ControllerSetData,
-                                                                                 self.ControllerstatusLabel))
-            elif Function == "Vent Fail Safe Pressure":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setVentFailsafePressure(self.ControllerSetData,
-                                                                                  self.ControllerstatusLabel))
-            elif Function == "Valve Minimum Energize Time":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setValveMinimumEnergizeTime(self.ControllerSetData,
-                                                                                      self.ControllerstatusLabel))
-            elif Function == "Valve Minimum Deenergize Time":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setValveMinimumDeenergizeTime(self.ControllerSetData,
-                                                                                        self.ControllerstatusLabel))
-            elif Function == "Fuel MV Autosequence Actuation":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setFuelMVAutosequenceActuation(self.ControllerSetData,
-                                                                                         self.ControllerstatusLabel))
-            elif Function == "Lox MV Autosequence Actuation":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setLoxMVAutosequenceActuation(self.ControllerSetData,
-                                                                                        self.ControllerstatusLabel))
-            elif Function == "Igniter 1 Actuation":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setIgniter1ActuationActuation(self.ControllerSetData,
-                                                                                        self.ControllerstatusLabel))
-            elif Function == "Igniter 2 Actuation":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setIgniter2ActuationActuation(self.ControllerSetData,
-                                                                                        self.ControllerstatusLabel))
-            elif Function == "ThrottleProgramPoint":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setThrottleProgramPoint(self.ControllerSetData,
-                                                                                  self.ControllerstatusLabel))
-            elif Function == "Throttle Program Reset ALL":
-                self.ControllerSetDataEntry.destroy()
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.throttleProgramReset(self.ControllerSetData,
-                                                                               self.ControllerstatusLabel))
-            elif Function == "Throttle Program Reset Specific Target Point":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.throttleProgramResetSpecific(self.ControllerSetData,
-                                                                                       self.ControllerstatusLabel))
-            elif Function == "Countdown Start":
-                self.ControllerDataEntryButton.config(
-                    command=lambda: self.chosenController.setCountdownStart(self.ControllerSetData,
-                                                                            self.ControllerstatusLabel))
+                    command=lambda: fptr[Function](self.ControllerSetData, self.ControllerstatusLabel)
+                )
 
     def NodeReset(self):
         DATA = [254]
