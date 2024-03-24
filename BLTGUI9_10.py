@@ -79,7 +79,7 @@ class Main:
     # Data needed to set up the Valve, Sensors, States
     # [ Valve Name, relx ,rely , Object ID , commandID, commandOFF , commandON, ]
 
-    # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON
+    # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
     valves = [
         ['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
         ['HP',   .6,   .15,   17, 1, 32, 33, yellow, 121, 2], 
@@ -119,7 +119,7 @@ class Main:
         #["Chamber 2", .55, 0.65, 0.065, 0, 20, 81, green],
 
     ]
-    # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState]
+    # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
     States = [
         #["Active",              2, 1,  3,  5, False, 1],
         ["Test",                 2, 1,  3,  5, False, 1],
@@ -305,9 +305,9 @@ class Main:
                 if self.graphingStatus:
                     for status, legend, graph in zip(sensor.GraphStatus, legendsGraphs, self.graphs):
                         if status.get():
-                            graph.axis.plot(sensor.sensorData, label=sensor.args[0])
+                            graph.axis.plot(sensor.sensorData, label=sensor.name)
                             graph.figure.canvas.draw()
-                            legend.append(sensor.args[0])
+                            legend.append(sensor.name)
 
             for legend, graph in zip(legendsGraphs, self.graphs):
                 if legend:
@@ -652,7 +652,7 @@ class Main:
 
         for sensor in self.sensorList:
             for menu, status in zip(self.graphsSubmenus, sensor.GraphStatus):
-                menu.add_checkbutton(label=sensor.args[0], variable=status)
+                menu.add_checkbutton(label=sensor.name, variable=status)
 
     def run(self):  # This takes place of the init
         """ TKinter Initialization"""
@@ -756,29 +756,32 @@ class Sensors:
     numOfSensors = 0
 
     def __init__(self, parent, args, SecondScreen, canReceive, graphs):
+        # [ Sensor Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID, labelColor]
+        #"High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
+
+        self.name, self.relx, self.rely, self.xoff, self.yoff, self.idRaw, self.idConv, self.color = args
+
         self.canReceive = canReceive
         self.parent = parent
         self.SecondScreen = SecondScreen
-        self.args = args
-        self.idRaw = args[5]
+
         self.idConv = self.idRaw +1
         self.idConvEma = self.idConv + 256
         self.idFake = self.idRaw + 100
 
-        self.color = args[7]
         self.sensorData = [0] * 100
         self.GraphStatus = [IntVar() for g in graphs]
         self.index = 0
-        self.name = args[0]
+
         # self.dataList = []
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
-        self.label = Label(parent, text=args[0], font=aFont, fg=self.color, bg='black')
-        self.label.place(relx=args[1], rely=args[2], anchor="nw")
+        self.label = Label(parent, text=self.name, font=aFont, fg=self.color, bg='black')
+        self.label.place(relx=self.relx, rely=self.rely, anchor="nw")
         # Makes label with the reading for its corresponding sensor
         self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg='orange', bg='black')
-        self.ReadingLabel.place(relx=args[1] + args[3], rely=args[2] + args[4], anchor="nw")
+        self.ReadingLabel.place(relx=self.relx + self.xoff, rely=self.rely + self.yoff, anchor="nw")
 
-        self.label2 = Label(SecondScreen, text=args[0], font=aFont, fg=self.color, bg='black')
+        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg='black')
         self.label2.place(relx=Sensors.numOfSensors % 2 * .1 + .025, rely=(Sensors.numOfSensors // 2) * .075 + .1,
                           anchor="nw")
 #         self.RawReadingLabel2 = Label(SecondScreen, text="N/A Raw", font=("Verdana", 9), fg='orange', bg='black')
@@ -868,23 +871,21 @@ class Valves:
     numOfValves = 0
 
     def __init__(self, parent, args, SecondScreen, canReceive):
+        # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
+        #['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
+        name, relx, rely, obj_id, hp_channel, comm_off, comm_on, color, sensorID, nodeID = args
+        self.name, self.x_pos, self.y_pos, self.id = name, relx, rely, obj_id
+        self.HPChannel, self.commandOFF, self.commandON = hp_channel, comm_off, comm_on
+        self.color, self.sensorID, self.nodeID = color, sensorID, nodeID
+
         self.canReceive = canReceive
         self.parent = parent
         self.SecondScreen = SecondScreen
-        self.args = args
         self.state = False
-        self.photo_name = args[0]
+        self.photo_name = name
         self.status = 69  # Keeps track of valve actuation state
 
-        self.name = args[0]
-        self.x_pos = args[1]
-        self.y_pos = args[2]
-        self.id = args[3]
         self.commandID = 1
-        self.HPChannel = args[4]
-        self.commandOFF = args[5]
-        self.commandON = args[6]
-        self.color = args[7]
         
         if "IGN" in self.photo_name:
             self.photo = "Valve Buttons/" + self.name + "-Off-EnableOn.png"
@@ -902,7 +903,7 @@ class Valves:
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
         
 
-        self.label2 = Label(SecondScreen, text=args[0], font=aFont, fg=self.color, bg='black')
+        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg='black')
         self.label2.place(relx=Valves.numOfValves % 2 * .075 + .25,rely=(Valves.numOfValves//2) *.075 + .1, anchor="nw")
         self.StatusLabel2 = Label(SecondScreen, text="N/A Status", font=("Verdana", 9), fg='orange', bg='black')
         self.StatusLabel2.place(relx=Valves.numOfValves % 2 * .075 + .25 + .025,
@@ -928,6 +929,7 @@ class Valves:
             CanBusSend(self.commandID, DATA)
 
     def resetAll(self, var, label):
+        settingID = 0
         DATA = [VERIFICATIONID, self.id, settingID]
         CanBusSend(NODEID, DATA)
         label.config(text="Command Sent!", fg="green")
@@ -1011,15 +1013,15 @@ class Valves:
         # if self.id in can_receive.node_state and self.status is not can_receive.node_state[self.id]:
         #     self.status = can_receive.node_state[self.id]
         if CanStatus:
-            if self.args[9] == 3:
+            if self.nodeID == 3:
                 if self.status == self.canReceive.ValvesRenegadeProp[self.HPChannel]:
                     pass
                 self.status = self.canReceive.ValvesRenegadeProp[self.HPChannel]
-            if self.args[9] == 2:
+            if self.nodeID == 2:
                 if self.status == self.canReceive.ValvesRenegadeEngine[self.HPChannel]:
                     pass
                 self.status = self.canReceive.ValvesRenegadeEngine[self.HPChannel]
-            self.VoltageLabel2.config(text = self.canReceive.Sensors[self.args[8]])
+            self.VoltageLabel2.config(text = self.canReceive.Sensors[self.sensorID])
             
             if self.status == 0:  # Closed
                 self.photo_name = "Valve Buttons/" + self.name + "-Closed-EnableStale.png"
@@ -1048,16 +1050,14 @@ class States:
     # Parent is the Parent Frame
     # args is the data in the States array.
     def __init__(self, parent, args, prevState=None):
+        # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
+        #["Active",              2, 1,  3,  5, False, 1],
+        self.stateName, self.stateID, self.commandID, self.commandOFF, self.commandON, \
+            self.isArmState, self.StateNumber = args
+
         self.parent = parent
-        self.args = args
         self.state = False
         self.prevState = prevState
-        self.stateName = args[0]
-        self.isArmState = args[5]
-        self.commandID = args[2]
-        self.commandOFF = args[3]
-        self.commandON = args[4]
-        self.StateNumber = args[6]
         self.relXCor = 0
         self.relYCor = 0
         self.relHeight = 1
@@ -1075,20 +1075,20 @@ class States:
         self.bgColor = "black"
         self.isVentAbort = False
         # Goes to logic function when button is pressed
-        self.button = Button(self.parent, text=self.args[0], fg='red', bg='black', bd=5,
+        self.button = Button(self.parent, text=self.stateName, fg='red', bg='black', bd=5,
                              command=lambda: self.Logic(), font=20)  # , font = self.fontSize)
         self.button.place(relx=self.relXCor, rely=self.relYCor, relwidth=self.relWidth, relheight=self.relHeight)
 
     # The Vent and abort buttons are made here
     def VentAbortInstantiation(self):
-        self.relXCor = self.args[1]
+        self.relXCor = self.stateID #self.args[1]
         self.relYCor = 0.85
         self.relHeight = .1
         self.relWidth = 1 / 10
         self.bgColor = darkGrey
         self.fontSize = ("Verdana", 26)
         self.isVentAbort = True
-        self.button = Button(self.parent, text=self.args[0], command=lambda: self.StateActuation(), fg='red',
+        self.button = Button(self.parent, text=self.stateName, command=lambda: self.StateActuation(), fg='red',
                              bg=darkGrey, font=self.fontSize, bd=5)  # , font=self.fontSize)
         self.button.place(relx=self.relXCor, rely=self.relYCor, relheight=self.relHeight, relwidth=self.relWidth)
 
@@ -1142,13 +1142,12 @@ class Controller:
     TankControllers = 0
 
     def __init__(self, args, Screen1, Screen2, canReceive):
+        #["Tank Controller HiPress", 2, False, black],
+        self.name, self.id, self.isAPropTank, self.color = args
         self.canReceive = canReceive
-        self.name = args[0]
-        self.id = args[1]
-        self.isAPropTank = args[2]
         self.parentMain = Screen1
         self.parent2 = Screen2
-        self.color = args[3]
+        
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
         if self.isAPropTank:
             self.KpLabel = Label(self.parent2, fg=self.color, bg=black, font=aFont, text="Kp")
