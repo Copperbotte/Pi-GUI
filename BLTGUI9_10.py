@@ -48,6 +48,49 @@ class Graph:
         self.axis = self.figure.add_subplot()
         self.canvasfigure.get_tk_widget().pack()
 
+def isfloat(x):
+    try:
+        a = float(x)
+    except (TypeError, ValueError):
+        return False
+    else:
+        return True
+
+
+def isint(x):
+    try:
+        a = float(x)
+        b = int(a)
+    except (TypeError, ValueError):
+        return False
+    else:
+        return a == b
+
+def intTypeCheck(var, type, label, size):
+    num = var.get()
+
+    buffer = {
+        int:   ( isint,   lambda val: dict(int=val),  "Integer Number" ),
+        float: ( isfloat, lambda val: dict(float=val), "Decimal Value" )
+    }
+
+    if type not in buffer:
+        return
+    
+    check, bitarrArg, errString = buffer[type]
+    
+    try:
+        if not check(num):
+            label.config(text="Invalid Type.\n%s is required as Input"%errString, fg="red")
+            return False
+        
+        binstr = bitstring.BitArray(length=size, **bitarrArg(type(num))).bin
+        label.config(text="Command Sent!", fg="green")
+        return True
+    except bitstring.CreationError as e:
+        label.config(text=e, fg="red")
+        return False
+
 class Main:
     # Data needed to set up the Valve, Sensors, States
     # [ Valve Name, relx ,rely , Object ID , commandID, commandOFF , commandON, ]
@@ -774,23 +817,49 @@ class Sensors:
 
         # self.dataList = []
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
-        self.label = Label(parent, text=self.name, font=aFont, fg=self.color, bg='black')
-        self.label.place(relx=self.relx, rely=self.rely, anchor="nw")
-        # Makes label with the reading for its corresponding sensor
-        self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg='orange', bg='black')
-        self.ReadingLabel.place(relx=self.relx + self.xoff, rely=self.rely + self.yoff, anchor="nw")
 
-        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg='black')
+        placeargs = dict(anchor="nw") # dict(anchor="center")
+        bg = black#purple if self.numOfSensors == 0 else black
+
+        # self.label corresponds with the main screen box labels, as their titles.
+        self.label = Label(parent, text=self.name, font=aFont, fg=self.color, bg=bg)
+        self.label.place(relx=self.relx, rely=self.rely, **placeargs)
+        
+        # self.ReadingLabel is the corresponding value for this box.
+        self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
+        self.ReadingLabel.place(relx=self.relx + self.xoff, rely=self.rely + self.yoff, **placeargs)
+
+        # self.label2 is the sensor title in the SENSORS box.
+        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
         self.label2.place(relx=Sensors.numOfSensors % 2 * .1 + .025, rely=(Sensors.numOfSensors // 2) * .075 + .1,
-                          anchor="nw")
-#         self.RawReadingLabel2 = Label(SecondScreen, text="N/A Raw", font=("Verdana", 9), fg='orange', bg='black')
+                          **placeargs)
+#         self.RawReadingLabel2 = Label(SecondScreen, text="N/A Raw", font=("Verdana", 9), fg='orange', bg=bg)
 #         self.RawReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .125 + .025 + .05,
-#                                     rely=(Sensors.numOfSensors // 2) * .075 + .05 + .0125, anchor="nw")
-        self.ConvReadingLabel2 = Label(SecondScreen, text="N/A Converted", font=("Verdana", 9), fg='orange', bg='black')
+#                                     rely=(Sensors.numOfSensors // 2) * .075 + .05 + .0125, **placeargs)
+        
+        # self.ConvReadingLabel2 is the corresponding value for this box.
+        self.ConvReadingLabel2 = Label(SecondScreen, text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
         self.ConvReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .1 + .025 + .05,
-                                     rely=(Sensors.numOfSensors // 2) * .075 + .1 - .0125, anchor="nw")
+                                     rely=(Sensors.numOfSensors // 2) * .075 + .1 - .0125, **placeargs)
 
         Sensors.numOfSensors += 1
+
+    # Updates the reading
+    # Gets called by the PropulsionFrame class
+    def Refresh(self, LabelRefresh):
+        value = random.randint(1, 100)
+        if CanStatus:
+            value = self.canReceive.Sensors[self.idConv]
+        self.sensorData = self.sensorData[1:] + self.sensorData[:1]
+        self.sensorData[-1] = value
+        self.index += 1
+        if LabelRefresh:
+            # The first call are to the main display boxes,
+            # the second call is to the Sensors box.
+            self.ReadingLabel.config(fg=orange, text=str(value) + " psi")  # Updates the label with the updated value
+            self.ConvReadingLabel2.config(fg=orange, text=str(value) + " psi")
+            #self.RawReadingLabel2.config(text=str(self.canReceive.Sensors[self.idRaw]))
+
 
     def resetAll(self, var, label):
         settingID = 0
@@ -816,47 +885,6 @@ class Sensors:
             binstr = bitstring.BitArray(int=int(var.get()), length=8).bin
             DATA = [VERIFICATIONID, self.idRaw, settingID, int(binstr[0:8], 2)]
             self.canSend(NODEID, DATA)
-
-    def intTypeCheck(self, var, type, label, size):
-        num = var.get()
-        if type == int:
-            if isint(num):
-                try:
-                    binstr = bitstring.BitArray(int=int(num), length=size).bin
-                    label.config(text="Command Sent!", fg="green")
-                    return True
-                except bitstring.CreationError as e:
-                    label.config(text=e, fg="red")
-                    return False
-            else:
-                label.config(text="Invalid Type.\nInteger Number is required as Input", fg="red")
-                return False
-        elif type == float:
-            if isfloat(num):
-                try:
-                    binstr = bitstring.BitArray(float=float(num), length=size).bin
-                    label.config(text="Command Sent!", fg="green")
-                    return True
-                except bitstring.CreationError as e:
-                    label.config(text=e, fg="red")
-                    return False
-            else:
-                label.config(text="Invalid Type.\nDecimal Value is required as Input", fg="red")
-                return False
-
-    # Updates the reading
-    # Gets called by the PropulsionFrame class
-    def Refresh(self, LabelRefresh):
-        value = random.randint(1, 100)
-        if CanStatus:
-            value = self.canReceive.Sensors[self.idConv]
-        self.sensorData = self.sensorData[1:] + self.sensorData[:1]
-        self.sensorData[-1] = value
-        self.index += 1
-        if LabelRefresh:
-            self.ReadingLabel.config(fg=orange,text=str(value) + " psi")  # Updates the label with the updated value
-            self.ConvReadingLabel2.config(fg=orange,text=str(value) + " psi")
-            #self.RawReadingLabel2.config(text=str(self.canReceive.Sensors[self.idRaw]))
 
 class Valves:
     numOfValves = 0
@@ -958,33 +986,6 @@ class Valves:
 
     def setLiveOutTime(self, var, label):
         self.updateSetting(var, label, 1, length=32)
-
-    def intTypeCheck(self, var, type, label, size):
-        num = var.get()
-        if type == int:
-            if isint(num):
-                try:
-                    binstr = bitstring.BitArray(int=int(num), length=size).bin
-                    label.config(text="Command Sent!", fg="green")
-                    return True
-                except bitstring.CreationError as e:
-                    label.config(text=e, fg="red")
-                    return False
-            else:
-                label.config(text="Invalid Type.\nInteger Number is required as Input", fg="red")
-                return False
-        elif type == float:
-            if isfloat(num):
-                try:
-                    binstr = bitstring.BitArray(float=float(num), length=size).bin
-                    label.config(text="Command Sent!", fg="green")
-                    return True
-                except bitstring.CreationError as e:
-                    label.config(text=e, fg="red")
-                    return False
-            else:
-                label.config(text="Invalid Type.\nDecimal Value is required as Input", fg="red")
-                return False
 
     def refresh_valve(self):
         # if self.id in can_receive.node_state and self.status is not can_receive.node_state[self.id]:
@@ -1267,33 +1268,6 @@ class Controller:
                     int(binstr[16:24], 2), int(binstr[24:32], 2)]
             self.canSend(NODEID, DATA)
 
-    def intTypeCheck(self, var, type, label, size):
-        num = var.get()
-        if type == int:
-            if isint(num):
-                try:
-                    binstr = bitstring.BitArray(int=int(num), length=size).bin
-                    label.config(text="Command Sent!", fg="green")
-                    return True
-                except bitstring.CreationError as e:
-                    label.config(text=e, fg="red")
-                    return False
-            else:
-                label.config(text="Invalid Type.\nInteger Number is required as Input", fg="red")
-                return False
-        elif type == float:
-            if isfloat(num):
-                try:
-                    binstr = bitstring.BitArray(float=float(num), length=size).bin
-                    label.config(text="Command Sent!", fg="green")
-                    return True
-                except bitstring.CreationError as e:
-                    label.config(text=e, fg="red")
-                    return False
-            else:
-                label.config(text="Invalid Type.\nDecimal Value is required as Input", fg="red")
-                return False
-
     def Refresh(self):
         if self.isAPropTank:
             if True:#CanStatus:
@@ -1314,25 +1288,6 @@ class Controller:
             self.Times['FuelMVTime2'].config(text=self.canReceive.Controllers[self.id][2]/1000)
             self.Times['IGN1Time2'].config(  text=self.canReceive.Controllers[self.id][4]/1000)
             self.Times['IGN2Time2'].config(  text=self.canReceive.Controllers[self.id][5]/1000)
-
-def isfloat(x):
-    try:
-        a = float(x)
-    except (TypeError, ValueError):
-        return False
-    else:
-        return True
-
-
-def isint(x):
-    try:
-        a = float(x)
-        b = int(a)
-    except (TypeError, ValueError):
-        return False
-    else:
-        return a == b
-
 
 """
 Starts Code
