@@ -13,6 +13,7 @@ from matplotlib.backends.backend_tkagg import (
     NavigationToolbar2Tk
 )
 from matplotlib import style
+import numpy as np
 
 style.use("dark_background")
 
@@ -47,6 +48,33 @@ class Graph:
         self.canvasfigure = FigureCanvasTkAgg(self.figure, master=self.frame)
         self.axis = self.figure.add_subplot()
         self.canvasfigure.get_tk_widget().pack()
+
+
+class TransformBox:
+    def __init__(self,
+            origin: tuple[float, float],
+            dx:     tuple[float, float],
+            dy:     tuple[float, float]):
+        self.origin, self.dx, self.dy = tuple(map(np.array, (origin, dx, dy)))
+        self.coords = np.array([dx, dy]).T
+        self.affine = np.array([dx, dy, origin]).T
+        self.transform = np.pad(self.affine, ((0,1), (0,0)), mode='constant', constant_values=0)
+        self.transform[-1, -1] = 1
+    
+    def __call__(self, pts):
+        pts = np.array(pts)
+        if len(pts.shape) == 1:
+            #return self.origin + self.dx*pts[0] + self.dy*pts[1]
+            return self.origin + (self.coords @ pts.T).T
+
+        pts = np.pad(pts, ((0,0), (0,1)), mode='constant', constant_values=1)
+        #return pts @ self.affine.T
+        return (pts @ self.transform.T)[:, :-1]
+
+    def __mul__(self, right):
+        res = self.transform @ right.transform
+        dx, dy, origin = res[:-1].T
+        return TransformBox(origin, dx, dy)
 
 def isfloat(x):
     try:
@@ -410,6 +438,33 @@ class Main:
             Graph("Graph 4", self.parentSecondScreen, .775, .5 ),
         ]
 
+    def GenerateBoxes(self):
+        #self.boxes = dict()
+
+        # Second display SENSORS box
+        #self.parentSecondScreen.create_rectangle(10, 10, 425, 800, outline=orange, fill=black, width=5)
+        #self.SensorsLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="SENSORS")
+        #self.SensorsLabel.place(relx=.09, rely=0.025)
+        self.boxSensors = TransformBox((10, 10), (415, 0), (0, 790))
+        self.boxValves = TransformBox((450, 10), (300, 0), (0, 540))
+        
+        #["High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
+        #['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2],
+        
+        self.boxSensorGrid = TransformBox((0.025, 0.100), (0.1, 0), (0, 0.075))
+        self.boxValveGrid = TransformBox((0.25, 0.100), (0.075, 0), (0, 0.075))
+
+        GridScale = TransformBox((0, 0), (1920,0), (0,1041))
+        boxSensorGrid = GridScale * self.boxSensorGrid
+        boxValveGrid = GridScale * self.boxValveGrid
+
+        boxes = [self.boxSensors, boxSensorGrid, self.boxValves, boxValveGrid]
+        for box in boxes:
+            pts = np.array([[0,0], [1,0], [1,1], [0,1], [0,0]])
+            pts = box(pts)
+            self.parentSecondScreen.create_line(*pts.tolist(), fill=yellow, width=10, capstyle='round')
+
+
     def ValveSettingsPopUp(self):
         """
         Creates Pop Up Window with a Drop down menu with all the valve
@@ -726,17 +781,19 @@ class Main:
         self.AutoSequence()
         self.StateReset()
         self.GenerateGraphs()
+        self.GenerateBoxes()
+
         self.Vent = States(self.parentMainScreen, Main.Vent, self.canSend)
         self.Vent.VentAbortInstantiation()
         self.Abort = States(self.parentMainScreen, Main.Abort, self.canSend)
         self.Abort.VentAbortInstantiation()
         # Instantiates Every Valve
         for valve in Main.valves:
-            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend))
+            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend, self.boxValveGrid))
 
         # Instantiates Every Sensor
         for sensor in Main.sensors:
-            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.canSend, self.graphs))
+            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.canSend, self.graphs, self.boxSensorGrid))
 
         # Instantiates Every Sensor
         for controller in Main.Controllers:
@@ -796,7 +853,7 @@ class Main:
 class Sensors:
     numOfSensors = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs):
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs, boxSensorGrid):
         # [ Sensor Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID, labelColor]
         #"High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
 
@@ -829,18 +886,19 @@ class Sensors:
         self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
         self.ReadingLabel.place(relx=self.relx + self.xoff, rely=self.rely + self.yoff, **placeargs)
 
+        pt = np.array([Sensors.numOfSensors % 2, Sensors.numOfSensors // 2])
+        pt = boxSensorGrid(pt)
+
         # self.label2 is the sensor title in the SENSORS box.
         self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label2.place(relx=Sensors.numOfSensors % 2 * .1 + .025, rely=(Sensors.numOfSensors // 2) * .075 + .1,
-                          **placeargs)
+        self.label2.place(relx=pt[0], rely=pt[1], **placeargs)
 #         self.RawReadingLabel2 = Label(SecondScreen, text="N/A Raw", font=("Verdana", 9), fg='orange', bg=bg)
 #         self.RawReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .125 + .025 + .05,
 #                                     rely=(Sensors.numOfSensors // 2) * .075 + .05 + .0125, **placeargs)
         
         # self.ConvReadingLabel2 is the corresponding value for this box.
         self.ConvReadingLabel2 = Label(SecondScreen, text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
-        self.ConvReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .1 + .025 + .05,
-                                     rely=(Sensors.numOfSensors // 2) * .075 + .1 - .0125, **placeargs)
+        self.ConvReadingLabel2.place(relx=pt[0] + .05, rely=pt[1] - .0125, **placeargs)
 
         Sensors.numOfSensors += 1
 
@@ -889,7 +947,7 @@ class Sensors:
 class Valves:
     numOfValves = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend):
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid):
         # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
         #['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
         name, relx, rely, obj_id, hp_channel, comm_off, comm_on, color, sensorID, nodeID = args
@@ -906,6 +964,11 @@ class Valves:
         self.status = 69  # Keeps track of valve actuation state
 
         self.commandID = 1
+
+        aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
+
+        placeargs = dict(anchor="nw") # dict(anchor="center")
+        bg = black#purple if self.numOfSensors == 0 else black
         
         if "IGN" in self.photo_name:
             self.photo = "Valve Buttons/" + self.name + "-Off-EnableOn.png"
@@ -915,24 +978,20 @@ class Valves:
         self.photo = Image.open(self.photo).resize((72,72))
         self.photo = ImageTk.PhotoImage(self.photo)
             
-        self.Button = Button(parent, font=("Verdana", 10), fg='red', bg='black')
+        self.Button = Button(parent, font=("Verdana", 10), fg=red, bg=bg)
         self.Button.place(relx=self.x_pos, rely=self.y_pos)
         self.Button.config(image=self.photo)
         self.Button.bind('<Double-1>', self.ValveActuation)
 
-        aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
-        
+        pt = np.array([Valves.numOfValves % 2, Valves.numOfValves // 2])
+        pt = boxValveGrid(pt)
 
-        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg='black')
-        self.label2.place(relx=Valves.numOfValves % 2 * .075 + .25,rely=(Valves.numOfValves//2) *.075 + .1, anchor="nw")
-        self.StatusLabel2 = Label(SecondScreen, text="N/A Status", font=("Verdana", 9), fg='orange', bg='black')
-        self.StatusLabel2.place(relx=Valves.numOfValves % 2 * .075 + .25 + .025,
-                                    rely=(Valves.numOfValves//2)* .075 + .1 + .0125,
-                                    anchor="nw")
-        self.VoltageLabel2 = Label(SecondScreen, text="N/A Voltage", font=("Verdana", 9), fg='orange', bg='black')
-        self.VoltageLabel2.place(relx=Valves.numOfValves % 2 * .075 + .25 + .025,
-                                     rely=(Valves.numOfValves//2)* .075 + .1 - .0125,
-                                     anchor="nw")
+        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
+        self.label2.place(relx=pt[0], rely=pt[1], anchor="nw")
+        self.StatusLabel2 = Label(SecondScreen, text="N/A Status", font=("Verdana", 9), fg=orange, bg=bg)
+        self.StatusLabel2.place(relx=pt[0] + .025, rely=pt[1] + .0125, **placeargs)
+        self.VoltageLabel2 = Label(SecondScreen, text="N/A Voltage", font=("Verdana", 9), fg=orange, bg=bg)
+        self.VoltageLabel2.place(relx=pt[0] + .025, rely=pt[1] - .0125, **placeargs)
         Valves.numOfValves += 1
 
     def ValveActuation(self, event):
