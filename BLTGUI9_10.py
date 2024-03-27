@@ -176,26 +176,49 @@ class Main:
         # Lines showing the fluid flow routing in the fluid system
         aFont = tkFont.Font(family="Verdana", size=15, weight="bold")
 
-        # Vertex Buffer
-        vb = [ 
-            ( 800,   50), ( 800,  250), ( 600,  250), (1000,  250), ( 600,  400), ( 800,  400), ( 800,  175), (1200,  175), 
-            (1000,  400), (1100,  175), (1100,  300), ( 800,  300), ( 500,  400), (1100,  400), ( 700,  600), ( 900,  600), 
-            ( 800,  600), ( 900,  750), ( 700,  750), ( 600,  750), ( 785,  750), ( 785,  900), ( 600,  500), ( 500,  500), 
+        Vertex_Buffer = [ 
+            ( 800,   50), ( 800,  250), ( 600,  250), (1000,  250), ( 600,  400), ( 800,  400),
+            ( 800,  175), (1200,  175), (1000,  400), (1100,  175), (1100,  300),
+             
+            ( 800,  325), ( 500,  400), (1100,  400), ( 700,  600), ( 900,  600), ( 800,  600),
+            ( 900,  750), ( 700,  750),
+
+            ( 600,  750), ( 785,  750), ( 785,  900), ( 600,  500), ( 500,  500), 
             (1000,  750), ( 815,  750), ( 815,  900), (1000,  500), (1100,  500), 
         ]
 
-        # Index Buffer
-        ib = [
-            ( 0,  1), ( 2,  3), ( 2,  4), ( 1,  5), ( 6,  7), ( 3,  8), ( 9, 10), # High Pressure lines
-            (11,  5), (12, 13), (14, 15), ( 5, 16), (15, 17), (14, 18),           # Pnumatics
-            ( 4, 19), (19, 20), (20, 21), (22, 23),         # Lox
-            ( 8, 24), (24, 25), (25, 26), (27, 28)          # Fuel
+        Color_Buffer = [yellow, purple, blue, red]
+
+        Index_Buffer = [
+            # High Pressure lines
+            ( 0,  0,  6,  9,  7),
+            ( 0,  9, 10),
+            ( 0,  6,  1, 11),
+            ( 0,  4,  2,  1,  3,  8),
+            
+            # Pnumatics
+            ( 1, 12,  5, 13),
+            ( 1, 11,  5, 16),
+            ( 1, 18, 14, 16, 15, 17),
+
+            # Lox
+            ( 2,  4, 22, 19, 18, 20, 21),
+            ( 2, 22, 23),
+
+            # Fuel
+            ( 3,  8, 27, 24, 17, 25, 26),
+            ( 3, 27, 28)
         ]
 
-        colors = [yellow]*7 + [purple]*6 + [blue]*4 + [red]*4
+        for inds in Index_Buffer:
+            color = Color_Buffer[inds[0]]
+            verts = tuple(map(lambda i: Vertex_Buffer[i], inds[1:]))
+            self.parentMainScreen.create_line(*verts, fill=color, width=5, capstyle='round')
+            for v in verts:
+                self.parentMainScreen.create_line(v, v, fill=color, width=10, capstyle='round')
 
-        for (i0, i1), fill in zip(ib, colors):
-            self.parentMainScreen.create_line(vb[i0], vb[i1], fill=fill, width=5)
+        #v0, v1, v2 = tuple(map(lambda i: Vertex_Buffer[i], [1, 2, 4]))
+        #self.parentMainScreen.create_line(v0, v1, v2, fill=yellow, width=5, capstyle='round', smooth=True)
         
         # These are the number value boxes.  Why are they here?
         self.parentMainScreen.create_rectangle(1275, 600, 1475, 850, outline=red,     fill=black)
@@ -207,17 +230,18 @@ class Main:
         # This holds the control buttons on the left.
         self.parentMainScreen.create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
 
-        # Second display value boxes.
-        self.parentSecondScreen.create_rectangle(450, 10, 750, 550, outline=orange, fill=black, width=5)
+        # Second display SENSORS box
         self.parentSecondScreen.create_rectangle(10, 10, 425, 800, outline=orange, fill=black, width=5)
-        
-        # Second display ENGINE CONTROLLER BOX
-        self.parentSecondScreen.create_rectangle(775, 475, 1125, 900, outline=green, fill=black, width=5)
-
         self.SensorsLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="SENSORS")
         self.SensorsLabel.place(relx=.09, rely=0.025)
+
+        # Second display VALVES box
         self.ValvesLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="VALVES")
         self.ValvesLabel.place(relx=.285, rely=0.025)
+        self.parentSecondScreen.create_rectangle(450, 10, 750, 550, outline=orange, fill=black, width=5)
+        
+        # Second display ENGINE CONTROLLER box
+        self.parentSecondScreen.create_rectangle(775, 475, 1125, 900, outline=green, fill=black, width=5)
         self.FuelControllerLabel = Label(self.parentSecondScreen, fg=green, bg=black, font=aFont, text="ENGINE CONTROLLER")
         self.FuelControllerLabel.place(relx=.435, rely=0.475)
 
