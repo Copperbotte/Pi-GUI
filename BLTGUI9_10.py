@@ -60,6 +60,12 @@ class TransformBox:
         self.affine = np.array([dx, dy, origin]).T
         self.transform = np.pad(self.affine, ((0,1), (0,0)), mode='constant', constant_values=0)
         self.transform[-1, -1] = 1
+
+    def __str__(self):
+        return str(self.affine)
+
+    def __repr__(self):
+        return str(self)
     
     def __call__(self, pts):
         pts = np.array(pts)
@@ -74,6 +80,22 @@ class TransformBox:
     def __mul__(self, right):
         res = self.transform @ right.transform
         dx, dy, origin = res[:-1].T
+        return TransformBox(origin, dx, dy)
+
+    def asRelArgs(self, pts, anchor='center', **args):
+        pts = self(pts)
+        res = dict(**args)
+        res.update(dict(relx=pts[0], rely=pts[1], anchor=anchor))
+        return res
+
+    def asAbsArgs(self, pts, anchor='center', **args):
+        pts = self(pts)
+        res = dict(**args)
+        res.update(dict(x=pts[0], y=pts[1], anchor=anchor))
+        return res
+
+    def inv(self):
+        dx, dy, origin = np.linalg.inv(self.transform)[:-1].T
         return TransformBox(origin, dx, dy)
 
 def isfloat(x):
@@ -121,44 +143,42 @@ def intTypeCheck(var, type, label, size):
 
 class Main:
     # Data needed to set up the Valve, Sensors, States
-    # [ Valve Name, relx ,rely , Object ID , commandID, commandOFF , commandON, ]
-
-    # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
+    # Name, VBuffer Index, Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
     valves = [
-        ['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
-        ['HP',   .6,   .15,   17, 1, 32, 33, yellow, 121, 2], 
-        ['LDR',  .35,  .35,   19, 3, 38, 39, blue,   133, 3], 
-        ['FDR',  .445, .35,   22, 7, 44, 45, red,    137, 3], 
-        ['LDV',  .225, .35,   20, 4, 40, 41, blue,   134, 3], 
-        ['FDV',  .55,  .35,   23, 8, 46, 47, red,    138, 3], 
-        ['LV',   .275, .45,   18, 1, 36, 37, blue,   131, 3], 
-        ['FV',   .535, .45,   21, 5, 42, 43, red,    135, 3], 
-        ['LMV',  .35,  .6875, 24, 4, 48, 49, blue,   124, 2], 
-        ['FMV',  .475, .6875, 25, 3, 50, 51, red,    123, 2], 
-        ['IGN1', .475, .775,  26, 5, 52, 53, green,  125, 2], 
-        ['IGN2', .475, .85,   27, 7, 54, 55, green,  127, 2]  
+        ['HV',    4, 16, 2, 34, 35, yellow, 122, 2], 
+        ['HP',    3, 17, 1, 32, 33, yellow, 121, 2], 
+        ['LDR',  11, 19, 3, 38, 39, blue,   133, 3], 
+        ['FDR',  13, 22, 7, 44, 45, red,    137, 3], 
+        ['LDV',   9, 20, 4, 40, 41, blue,   134, 3], 
+        ['FDV',  15, 23, 8, 46, 47, red,    138, 3], 
+        ['LV',   16, 18, 1, 36, 37, blue,   131, 3], 
+        ['FV',   19, 21, 5, 42, 43, red,    135, 3], 
+        ['LMV',  26, 24, 4, 48, 49, blue,   124, 2], 
+        ['FMV',  29, 25, 3, 50, 51, red,    123, 2], 
+        ['IGN1', 34, 26, 5, 52, 53, green,  125, 2], 
+        ['IGN2', 35, 27, 7, 54, 55, green,  127, 2]  
     ]
     # [ 
-    # [ Sensor Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID,
+    # [ Sensor Name, Main Grid Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID,
     # labelColor]
     sensors = [
-        ["High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
-        ["High\nPress 2",    0.525, 0.05,  0.0,   0.05, 72, 81, yellow],#, 1, 1],
-        ["Fuel\nTank 1",     0.675, 0.600, 0.0,   0.05, 62, 81, red   ],#, 0.0258, -161.04],
-        ["Lox Dome\nReg",    0.175, 0.700, 0.0,   0.05, 76, 81, blue  ],#, 0.0258, -161.04],
-        ["Fuel Dome\nReg",   0.675, 0.700, 0.0,   0.05, 74, 81, red   ],#, 0.0258, -161.04],
-        ["Lox\nTank 1",      0.225, 0.600, 0.0,   0.05, 66, 81, blue  ],#, 1, 1],
-        ["Fuel\nTank 2",     0.725, 0.600, 0.0,   0.05, 64, 81, red   ],#, 0.0293, -190.04],
-        ["Lox\nTank 2",      0.175, 0.600, 0.0,   0.05, 68, 81, blue  ],#, 1,1],
-        ["Fuel\nProp Inlet", 0.725, 0.7,   0.0,   0.05, 58, 81, red   ],#, 1, 1],
-        ["Lox\nProp Inlet",  0.225, 0.7,   0.0,   0.05, 60, 81, blue  ],#, 1, 1],
-        ["Fuel\nInjector",   0.7,   0.8,   0.0,   0.05, 54, 81, red   ],#, 1, 1],
-        ["LC1: ",            0.55,  0.7,   0.035, 0.0,  37, 37, green ],#, 1, 1],
-        ["Chamber 1",        0.55,  0.6,   0.065, 0.0,  50, 51, green ],
-        ["LC2: ",            0.55,  0.75,  0.035, 0.0,  43, 43, green ],#, 1, 1],
-        ["Chamber 2",        0.55,  0.65,  0.065, 0.0,  52, 81, green ],
-        ["LC3: ",            0.55,  0.8,   0.035, 0.0,  49, 49, green ],#, 1, 1],
-        ["MV\nPneumatic",    0.4,   0.6,   0.01,  0.05, 56, 81, purple],#, 1, 1],
+        ["High\nPress 1",    "HiPr",   0,   0, 0, 1/3, 70, 81, yellow],#, 1, 1],
+        ["High\nPress 2",    "HiPr",   1,   0, 0, 1/3, 72, 81, yellow],#, 1, 1],
+        ["Fuel\nTank 1",     "Fuel",   0,   0, 0, 1/3, 62, 81, red   ],#, 0.0258, -161.04],
+        ["Lox Dome\nReg",    "Loxy",   0,   1, 0, 1/3, 76, 81, blue  ],#, 0.0258, -161.04],
+        ["Fuel Dome\nReg",   "Fuel",   0,   1, 0, 1/3, 74, 81, red   ],#, 0.0258, -161.04],
+        ["Lox\nTank 1",      "Loxy",   1,   0, 0, 1/3, 66, 81, blue  ],#, 1, 1],
+        ["Fuel\nTank 2",     "Fuel",   1,   0, 0, 1/3, 64, 81, red   ],#, 0.0293, -190.04],
+        ["Lox\nTank 2",      "Loxy",   0,   0, 0, 1/3, 68, 81, blue  ],#, 1,1],
+        ["Fuel\nProp Inlet", "Fuel",   1,   1, 0, 1/3, 58, 81, red   ],#, 1, 1],
+        ["Lox\nProp Inlet",  "Loxy",   1,   1, 0, 1/3, 60, 81, blue  ],#, 1, 1],
+        ["Fuel\nInjector",   "Fuel", 1/2,   2, 0, 1/3, 54, 81, red   ],#, 1, 1],
+        ["LC1",              "Yeet",   0,   1, 0, 1/3, 37, 37, green ],#, 1, 1],
+        ["Chamber 1",        "Yeet",   0,   0, 0, 1/3, 50, 51, green ],
+        ["LC2",              "Yeet",   1,   1, 0, 1/3, 43, 43, green ],#, 1, 1],
+        ["Chamber 2",        "Yeet",   1,   0, 0, 1/3, 52, 81, green ],
+        ["LC3",              "Yeet", 1/2, 3/2, 0, 1/3, 49, 49, green ],#, 1, 1],
+        ["MV\nPneumatic",    "Aero",   0,   0, 0, 1/3, 56, 81, purple],#, 1, 1],
 
         #["Chamber 2", .55, 0.65, 0.065, 0, 20, 81, green],
 
@@ -178,11 +198,11 @@ class Main:
         "Vent", 0.15, 1, 3, 9, False, 0
     ]
     Abort = [
-        "Abort", .275, 1, 3, 7, False, 0
+        "Abort", .265, 1, 3, 7, False, 0
     ]
     Controllers = [
-        #["Tank Controller HiPress", 2, False, black],
-        #["Tank Controller Lox",     3, True,  blue ],
+        #["Tank Controller HiPress", 2, False, yellow],
+        #["Tank Controller Lox",     3, True,  blue ],  # Unused features
         #["Tank Controller Fuel",    4, True,  red  ],
         ["Engine Controller 1",      5, False, black],
         ["Auto Sequence",            1, False, black],
@@ -230,91 +250,99 @@ class Main:
         """ Propulsion System Diagram"""
 
         buffer = [
-            ["GUI Images/Engine_Clipart.png",        dict(relx=.4,    rely=.775)],
-            ["GUI Images/LOxTankClipart.png",        dict(relx=.3,    rely=.55 )],
-            ["GUI Images/FuelTankClipart.png",       dict(relx=.5075, rely=.55 )],
-            ["GUI Images/PressurantTankClipart.png", dict(relx=.405,  rely=.01 )]
+            ["GUI Images/Engine_Clipart.png",        32],
+            ["GUI Images/LOxTankClipart.png",        20],
+            ["GUI Images/FuelTankClipart.png",       24],
+            ["GUI Images/PressurantTankClipart.png",  0]
         ]
 
-        for src, iargs in buffer:
+        tf = self.boxWireGrid
+
+        for src, i in buffer:
             img = Image.open(src)
             render = ImageTk.PhotoImage(img)
             label = Label(self.parentMainScreen, image=render, bg=black)
             label.image = render
-            label.place(**iargs)
+            label.place(**self.boxWireGrid.asAbsArgs(self.Vertex_Buffer[i]))
         
     def propLinePlacement(self):
         # Lines showing the fluid flow routing in the fluid system
         aFont = tkFont.Font(family="Verdana", size=15, weight="bold")
 
+        self.Vertex_Buffer = \
         Vertex_Buffer = [ 
-            ( 800,   50), ( 800,  250), ( 600,  250), (1000,  250), ( 600,  400), ( 800,  400),
-            ( 800,  175), (1200,  175), (1000,  400), (1100,  175), (1100,  300),
-             
-            ( 800,  325), ( 500,  400), (1100,  400), ( 700,  600), ( 900,  600), ( 800,  600),
-            ( 900,  750), ( 700,  750),
+            (  0,  1),
+            (  0,  5), ( 12,  5), ( 16,  5), ( 12, 10),
+            ( -8,  8), (  0,  8), (  8,  8),
+            
+            (  0, 11),
+            (-12, 14), ( -8, 14), ( -4, 14), (  0, 14), ( 4, 14), (  8, 14), ( 12, 14),
 
-            ( 600,  750), ( 785,  750), ( 785,  900), ( 600,  500), ( 500,  500), 
-            (1000,  750), ( 815,  750), ( 815,  900), (1000,  500), (1100,  500), 
+            (-12, 18), ( -8, 18), (  8, 18), ( 12, 18),
+            ( -8, 23), ( -4, 22), (  0, 22), (  4, 22), (  8, 23), 
+            
+            ( -8, 28), ( -4, 28), (-.6, 28), ( .6, 28), (  4, 28), (  8, 28),
+            (-.6, 34), (  0, 34), ( .6, 34),
+            
+            ( 4, 32), ( 4, 35)
         ]
+        # One of these vertices is unused, and a lot are unneeded.
+        # They're used for positioning of valve buttons later.
+
+        ScreenSpace = TransformBox((800,  50), (25, 0), (0, 25))
+        self.boxWireGrid = self.boxWireGrid * ScreenSpace
 
         Color_Buffer = [yellow, purple, blue, red]
 
         Index_Buffer = [
             # High Pressure lines
-            ( 0,  0,  6,  9,  7),
-            ( 0,  9, 10),
-            ( 0,  6,  1, 11),
-            ( 0,  4,  2,  1,  3,  8),
+            ( 0,  0,  1,  6,  8),
+            ( 0,  1,  2,  3),
+            ( 0,  2,  4),
+            ( 0, 10,  5,  6,  7, 14),
             
             # Pnumatics
-            ( 1, 12,  5, 13),
-            ( 1, 11,  5, 16),
-            ( 1, 18, 14, 16, 15, 17),
+            ( 1,  8, 12, 22),
+            ( 1,  9, 10, 11, 12, 13, 14, 15),
+            ( 1, 26, 21, 22, 23, 29),
 
             # Lox
-            ( 2,  4, 22, 19, 18, 20, 21),
-            ( 2, 22, 23),
+            ( 2, 10, 17, 20, 25, 26, 27, 31),
+            ( 2, 16, 17),
 
             # Fuel
-            ( 3,  8, 27, 24, 17, 25, 26),
-            ( 3, 27, 28)
+            ( 3, 14, 18, 24, 30, 29, 28, 33),
+            ( 3, 18, 19)
         ]
+
+        #self.WireDebugNumbers = []
+        #for i, v in enumerate(Vertex_Buffer):
+        #    self.WireDebugNumbers.append(Label(self.parentMainScreen, fg=orange, bg=black, font=aFont, text="%d"%i))
+        #    self.WireDebugNumbers[-1].place(**self.boxWireGrid.asAbsArgs(v))
 
         for inds in Index_Buffer:
             color = Color_Buffer[inds[0]]
-            verts = tuple(map(lambda i: Vertex_Buffer[i], inds[1:]))
+            verts = tuple(map(lambda i: self.boxWireGrid(Vertex_Buffer[i]).tolist(), inds[1:]))
             self.parentMainScreen.create_line(*verts, fill=color, width=5, capstyle='round')
-            for v in verts:
+            for i,v in zip(inds[1:], verts):
                 self.parentMainScreen.create_line(v, v, fill=color, width=10, capstyle='round')
-
-        #v0, v1, v2 = tuple(map(lambda i: Vertex_Buffer[i], [1, 2, 4]))
-        #self.parentMainScreen.create_line(v0, v1, v2, fill=yellow, width=5, capstyle='round', smooth=True)
-        
-        # These are the number value boxes.  Why are they here?
-        self.parentMainScreen.create_rectangle(1275, 600, 1475, 850, outline=red,     fill=black)
-        self.parentMainScreen.create_rectangle(300,  600, 500,  850, outline=blue,    fill=black)
-        self.parentMainScreen.create_rectangle(1050, 600, 1250, 900, outline=green,   fill=black)
-        self.parentMainScreen.create_rectangle(850,  30,  1100, 150, outline=yellow,  fill=black)
-        self.parentMainScreen.create_rectangle(750,  625, 870,  725, outline=purple,  fill=black)
+                #self.WireDebugNumbers.append(Label(self.parentMainScreen, fg=color, bg=black, font=aFont, text="%d"%i))
+                #self.WireDebugNumbers[-1].place(x=v[0], y=v[1], anchor='center')
         
         # This holds the control buttons on the left.
         self.parentMainScreen.create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
 
         # Second display SENSORS box
-        self.parentSecondScreen.create_rectangle(10, 10, 425, 800, outline=orange, fill=black, width=5)
         self.SensorsLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="SENSORS")
-        self.SensorsLabel.place(relx=.09, rely=0.025)
+        self.SensorsLabel.place(**self.boxSensorGrid.asAbsArgs((1/2, -2/3)))
 
         # Second display VALVES box
         self.ValvesLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="VALVES")
-        self.ValvesLabel.place(relx=.285, rely=0.025)
-        self.parentSecondScreen.create_rectangle(450, 10, 750, 550, outline=orange, fill=black, width=5)
+        self.ValvesLabel.place(**self.boxValveGrid.asAbsArgs((1/2, -2/3)))
         
         # Second display ENGINE CONTROLLER box
-        self.parentSecondScreen.create_rectangle(775, 475, 1125, 900, outline=green, fill=black, width=5)
         self.FuelControllerLabel = Label(self.parentSecondScreen, fg=green, bg=black, font=aFont, text="ENGINE CONTROLLER")
-        self.FuelControllerLabel.place(relx=.435, rely=0.475)
+        self.FuelControllerLabel.place(**self.boxEngineControllerGrid.asAbsArgs((1/2, -2/3)))
 
     def ManualOverride(self, event):
         if Main.CurrState != "Override":
@@ -439,31 +467,77 @@ class Main:
         ]
 
     def GenerateBoxes(self):
-        #self.boxes = dict()
+        #self.GridScale = TransformBox((0, 0), (1920,0), (0,1041))
 
-        # Second display SENSORS box
-        #self.parentSecondScreen.create_rectangle(10, 10, 425, 800, outline=orange, fill=black, width=5)
-        #self.SensorsLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="SENSORS")
-        #self.SensorsLabel.place(relx=.09, rely=0.025)
-        self.boxSensors = TransformBox((10, 10), (415, 0), (0, 790))
-        self.boxValves = TransformBox((450, 10), (300, 0), (0, 540))
+        # This was learned using gradient descent on the difference of the original transform on valveList, and 
+        # pts2 = np.array([[v.StatusLabel2.winfo_x(), v.StatusLabel2.winfo_y()] for v in GUI.valveList]).
+        #self.GridScale = TransformBox((24,-23), (1920,0), (0,1040))
+        #self.GridScale = TransformBox((0,0), (1920,0), (0,1040))
+        # 
+        # The above commented out code was used to find relative positioned coordinates.
+        #     I've since moved to absolute coordinates, since the pi's target displays shouldn't ever change.
+        #     Feel free to remove this comment block as needed. -Joe Kesser, 2024 March 28
+
+        self.GridScale = TransformBox((0,0), (1920,0), (0,1080))
+        self.boxWireGrid = TransformBox(self.GridScale((-0.025, 0)), (1,0), (0,1))
         
-        #["High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
-        #['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2],
+        boxSensorGrid = TransformBox((0.025+0.035, 0.100 + 0.015), (0.1, 0), (0, 0.075))
+        boxValveGrid = TransformBox(boxSensorGrid((2,0)), (0.075, 0), (0, 0.075))
+        boxEngineControllerGrid = TransformBox(boxValveGrid((0,7 + 2/5)), (0.075,0), (0,0.1))
         
-        self.boxSensorGrid = TransformBox((0.025, 0.100), (0.1, 0), (0, 0.075))
-        self.boxValveGrid = TransformBox((0.25, 0.100), (0.075, 0), (0, 0.075))
+        self.boxSensorGrid = self.GridScale * boxSensorGrid
+        self.boxValveGrid = self.GridScale * boxValveGrid
+        self.boxEngineControllerGrid = self.GridScale * boxEngineControllerGrid
 
-        GridScale = TransformBox((0, 0), (1920,0), (0,1041))
-        boxSensorGrid = GridScale * self.boxSensorGrid
-        boxValveGrid = GridScale * self.boxValveGrid
+        # Main display boxes
+        boxLoxGrid = TransformBox((0.175+0.01, 0.6), (0.05, 0), (0, 0.1))
+        boxEngineGrid = TransformBox((0.55+0*0.025, 0.588), (0.05, 0), (0, 0.1))
+        
+        boxFuelGrid = TransformBox(boxEngineGrid((2.5,0)), (0.05, 0), (0, 0.1))
+        
+        boxAeroGrid = TransformBox((0.39, 0.62), (0.05, 0), (0, 0.1))
+        boxHighPress = TransformBox((0.475, 0.075), (0.05, 0), (0, 0.1))
+        
+        self.boxLoxGrid = self.GridScale * boxLoxGrid
+        self.boxEngineGrid = self.GridScale * boxEngineGrid
+        self.boxFuelGrid = self.GridScale * boxFuelGrid
+        self.boxAeroGrid = self.GridScale * boxAeroGrid
+        self.boxHighPress = self.GridScale * boxHighPress
 
-        boxes = [self.boxSensors, boxSensorGrid, self.boxValves, boxValveGrid]
-        for box in boxes:
-            pts = np.array([[0,0], [1,0], [1,1], [0,1], [0,0]])
-            pts = box(pts)
-            self.parentSecondScreen.create_line(*pts.tolist(), fill=yellow, width=10, capstyle='round')
+        self.dictBoxGridsMain = dict(
+            Loxy=self.boxLoxGrid,
+            Yeet=self.boxEngineGrid,
+            Fuel=self.boxFuelGrid,
+            Aero=self.boxAeroGrid,
+            HiPr=self.boxHighPress
+        )
 
+    def GenerateBoxDebug(self):
+
+        boxSensorGrid = self.GridScale * self.boxSensorGrid
+        boxValveGrid = self.GridScale * self.boxValveGrid
+
+        pts = np.array([[0,0], [1,0], [1,1], [0,1], [0,0]])
+
+        buffer = [
+            # Display 1 Boxes
+            [0, self.boxLoxGrid,    (-2/3, -1/2), 2+1/3, 2,     1, blue],
+            [0, self.boxEngineGrid, (-2/3, -1/2), 2+1/3, 2+1/3, 1, green],
+            [0, self.boxFuelGrid,   (-2/3, -1/2), 2+1/3, 3,     1, red],
+            [0, self.boxAeroGrid,   (-2/3, -1/2), 1+1/3, 1,     1, purple],
+            [0, self.boxHighPress,  (-2/3, -1/2), 2+1/3, 1,     1, yellow],
+
+            # Display 2 Boxes
+            [1, self.boxSensorGrid,           (-0.5,-1.25), 2, 10,   5, orange],
+            [1, self.boxValveGrid,            (-0.5,-1.25), 2, 7,    5, orange],
+            [1, self.boxEngineControllerGrid, (-0.5,-1),    2, 2.5,  5, green],
+        ]
+
+        displays = [self.parentMainScreen, self.parentSecondScreen]
+        
+        for di, tf, pt, dx, dy, width, color in buffer:
+            tf = tf * TransformBox(pt, (dx,0), (0,dy))
+            displays[di].create_line(*tf(pts).tolist(), fill=color, width=width, joinstyle='miter')
 
     def ValveSettingsPopUp(self):
         """
@@ -775,13 +849,15 @@ class Main:
         self.PropNodeState.place(relx=.01, rely=0.02)
         self.EngineNodeState = Label(self.parentMainScreen, text="Engine Node State", fg=orange, bg=black, font=("Arial", 25))
         self.EngineNodeState.place(relx=.01, rely=0.07)
-        
-        self.imagePlacement()
+
+        self.GenerateBoxes()
         self.propLinePlacement()
+        self.imagePlacement()
         self.AutoSequence()
         self.StateReset()
         self.GenerateGraphs()
-        self.GenerateBoxes()
+        self.GenerateBoxDebug()
+        
 
         self.Vent = States(self.parentMainScreen, Main.Vent, self.canSend)
         self.Vent.VentAbortInstantiation()
@@ -789,15 +865,15 @@ class Main:
         self.Abort.VentAbortInstantiation()
         # Instantiates Every Valve
         for valve in Main.valves:
-            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend, self.boxValveGrid))
+            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend, self.boxValveGrid, self.boxWireGrid, self.Vertex_Buffer))
 
         # Instantiates Every Sensor
         for sensor in Main.sensors:
-            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.canSend, self.graphs, self.boxSensorGrid))
+            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.canSend, self.graphs, self.boxSensorGrid, self.dictBoxGridsMain))
 
         # Instantiates Every Sensor
         for controller in Main.Controllers:
-            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive, self.canSend))
+            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive, self.canSend, self.boxEngineControllerGrid, self.GridScale))
 
         self.Menus(self.parentMainScreen, self.appMainScreen)
         self.Menus(self.parentSecondScreen, self.appSecondScreen)
@@ -846,6 +922,8 @@ class Main:
                                                                                 False))  # switches from fullscreen to zoomed
         self.root.withdraw()
 
+        #self.GenerateBoxDebug()
+
         self.root.mainloop()
         #self.appMainScreen.mainloop()
 
@@ -853,11 +931,11 @@ class Main:
 class Sensors:
     numOfSensors = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs, boxSensorGrid):
-        # [ Sensor Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID, labelColor]
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs, boxSensorGrid, dictBoxGridsMain):
+        # [ Sensor Name, Main Grid Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID, labelColor]
         #"High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
 
-        self.name, self.relx, self.rely, self.xoff, self.yoff, self.idRaw, self.idConv, self.color = args
+        self.name, self.mainGrid, self.relx, self.rely, self.xoff, self.yoff, self.idRaw, self.idConv, self.color = args
 
         self.canReceive = canReceive
         self.canSend = canSend
@@ -875,30 +953,52 @@ class Sensors:
         # self.dataList = []
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
 
-        placeargs = dict(anchor="nw") # dict(anchor="center")
+        placeargs = dict(anchor="center") # dict(anchor="nw")
         bg = black#purple if self.numOfSensors == 0 else black
 
+
+        ### 1st Display
+        pt = np.array([self.relx, self.rely])
+        adj = TransformBox(pt, (1/2,0), (0,1/2))
+        tf = dictBoxGridsMain[self.mainGrid] * adj
+        
         # self.label corresponds with the main screen box labels, as their titles.
         self.label = Label(parent, text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label.place(relx=self.relx, rely=self.rely, **placeargs)
+        self.label.place(**tf.asAbsArgs((-self.xoff, -self.yoff)))
         
         # self.ReadingLabel is the corresponding value for this box.
         self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
-        self.ReadingLabel.place(relx=self.relx + self.xoff, rely=self.rely + self.yoff, **placeargs)
+        self.ReadingLabel.place(**tf.asAbsArgs((self.xoff, self.yoff)))
 
+        # Draws the background box
+        pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
+        tf = tf * TransformBox((0,0), (6/7,0), (0,1/3))
+        parent.create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
+
+        
+        ### 2nd Display
         pt = np.array([Sensors.numOfSensors % 2, Sensors.numOfSensors // 2])
-        pt = boxSensorGrid(pt)
+        adj = TransformBox(pt, (1/5,0), (0,1))
+        tf = boxSensorGrid * adj
+        
+        pt0 = tf.asAbsArgs((-1, 0))
+        pt1 = tf.asAbsArgs(( 1, 0))
 
         # self.label2 is the sensor title in the SENSORS box.
         self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label2.place(relx=pt[0], rely=pt[1], **placeargs)
+        self.label2.place(**pt0)
 #         self.RawReadingLabel2 = Label(SecondScreen, text="N/A Raw", font=("Verdana", 9), fg='orange', bg=bg)
 #         self.RawReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .125 + .025 + .05,
 #                                     rely=(Sensors.numOfSensors // 2) * .075 + .05 + .0125, **placeargs)
         
         # self.ConvReadingLabel2 is the corresponding value for this box.
         self.ConvReadingLabel2 = Label(SecondScreen, text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
-        self.ConvReadingLabel2.place(relx=pt[0] + .05, rely=pt[1] - .0125, **placeargs)
+        self.ConvReadingLabel2.place(**pt1)
+
+        # Draws the background box
+        pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
+        tf = tf * TransformBox((0,0), (1,0), (0,1/3))
+        SecondScreen.create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
 
         Sensors.numOfSensors += 1
 
@@ -947,11 +1047,13 @@ class Sensors:
 class Valves:
     numOfValves = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid):
-        # Name, Relx, Rely , Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
-        #['HV',   .55,  .25,   16, 2, 34, 35, yellow, 122, 2], 
-        name, relx, rely, obj_id, hp_channel, comm_off, comm_on, color, sensorID, nodeID = args
-        self.name, self.x_pos, self.y_pos, self.id = name, relx, rely, obj_id
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid, boxWireGrid, Vertex_Buffer):
+        # Name, VBuffer Index, Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
+        #['HV',    4, 16, 2, 34, 35, yellow, 122, 2], 
+
+        name, index, obj_id, hp_channel, comm_off, comm_on, color, sensorID, nodeID = args
+        self.name, self.index, self.id = name, index, obj_id
+        
         self.HPChannel, self.commandOFF, self.commandON = hp_channel, comm_off, comm_on
         self.color, self.sensorID, self.nodeID = color, sensorID, nodeID
 
@@ -977,21 +1079,33 @@ class Valves:
 
         self.photo = Image.open(self.photo).resize((72,72))
         self.photo = ImageTk.PhotoImage(self.photo)
-            
+
+        # Displays a button on a vertex in the propline diagram.
         self.Button = Button(parent, font=("Verdana", 10), fg=red, bg=bg)
-        self.Button.place(relx=self.x_pos, rely=self.y_pos)
+        self.Button.place(**boxWireGrid.asAbsArgs(Vertex_Buffer[self.index]))
         self.Button.config(image=self.photo)
         self.Button.bind('<Double-1>', self.ValveActuation)
 
+        # Displays valve info on the 2nd display
         pt = np.array([Valves.numOfValves % 2, Valves.numOfValves // 2])
-        pt = boxValveGrid(pt)
+        adj = TransformBox(pt, (1/6,0), (0,1/6))
+        tf = boxValveGrid * adj
+
+        pt0 = tf.asAbsArgs((-1, 0))
+        pt1 = tf.asAbsArgs(( 1,-1))
+        pt2 = tf.asAbsArgs(( 1, 1))
 
         self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label2.place(relx=pt[0], rely=pt[1], anchor="nw")
+        self.label2.place(**pt0)
         self.StatusLabel2 = Label(SecondScreen, text="N/A Status", font=("Verdana", 9), fg=orange, bg=bg)
-        self.StatusLabel2.place(relx=pt[0] + .025, rely=pt[1] + .0125, **placeargs)
+        self.StatusLabel2.place(**pt1)
         self.VoltageLabel2 = Label(SecondScreen, text="N/A Voltage", font=("Verdana", 9), fg=orange, bg=bg)
-        self.VoltageLabel2.place(relx=pt[0] + .025, rely=pt[1] - .0125, **placeargs)
+        self.VoltageLabel2.place(**pt2)
+
+        # Draws the background box
+        pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
+        SecondScreen.create_line(*tf(pts).tolist(), fill=color, width=1, capstyle='projecting', joinstyle='miter')
+        
         Valves.numOfValves += 1
 
     def ValveActuation(self, event):
@@ -1179,7 +1293,7 @@ class States:
 class Controller:
     TankControllers = 0
 
-    def __init__(self, args, Screen1, Screen2, canReceive, canSend):
+    def __init__(self, args, Screen1, Screen2, canReceive, canSend, boxEngineControllerGrid, GridScale):
         #["Tank Controller HiPress", 2, False, black],
         self.name, self.id, self.isAPropTank, self.color = args
         self.canReceive = canReceive
@@ -1190,28 +1304,35 @@ class Controller:
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
         if self.isAPropTank:
             buffer = [
-                ["KpLabel",              "Kp",                       .025, 0.525],
-                ["KiLabel",              "Ki",                       .075, 0.525],
-                ["KdLabel",              "Kd",                       .125, 0.525],
-                ["EpLabel",              "Ep",                       .025, 0.6],
-                ["EiLabel",              "Ei",                       .075, 0.6],
-                ["EdLabel",              "Ed",                       .125, 0.6],
-                ["PIDSUMLabel",          "PID SUM",                  .025, 0.7],
-                ["TargetValueLabel",     "Target\nValue",            .075, 0.7],
-                ["ThresholdLabel",       "Threshold",                .125, 0.7],
-                ["EnergizeTime",         "Energize\nTime",           .025, 0.8],
-                ["DenergizeTime",        "Denergize\nTime",          .075, 0.8],
-                ["VentFailSafePressure", "Vent Fail\nSafe Pressure", .125, 0.8],
+                ["KpLabel",              "Kp",                       0, 0],
+                ["KiLabel",              "Ki",                       1, 0],
+                ["KdLabel",              "Kd",                       2, 0],
+                ["EpLabel",              "Ep",                       0, 1],
+                ["EiLabel",              "Ei",                       1, 1],
+                ["EdLabel",              "Ed",                       2, 1],
+                ["PIDSUMLabel",          "PID SUM",                  0, 2],
+                ["TargetValueLabel",     "Target\nValue",            1, 2],
+                ["ThresholdLabel",       "Threshold",                2, 2],
+                ["EnergizeTime",         "Energize\nTime",           0, 3],
+                ["DenergizeTime",        "Denergize\nTime",          1, 3],
+                ["VentFailSafePressure", "Vent Fail\nSafe Pressure", 2, 3],
             ]
+
+            tf0 = GridScale * TransformBox((0.5, Controller.TankControllers/3), (1, 0), (0, 1)) * TransformBox((.025, 0.25), (0.05, 0), (0, 0.075))
 
             self.labels = dict()
             for name1, text, relx, rely in buffer:
+
+                pt = np.array([relx, rely])
+                adj = TransformBox(pt, (1/3,0), (0,1/6))
+                tf = tf0 * adj
+                
                 self.labels[name1] = Label(self.parent2, fg=self.color, bg=black, font=aFont, text=text)
-                self.labels[name1].place(relx=relx + Controller.TankControllers * .2, rely=rely)
+                self.labels[name1].place(**tf.asAbsArgs((0, -1)))
 
                 name2 = name1 + '2'
                 self.labels[name2] = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-                self.labels[name2].place(relx=relx + Controller.TankControllers * .2, rely=rely + 0.05)
+                self.labels[name2].place(**tf.asAbsArgs((0, 1)))
 
             Controller.TankControllers += 1
         if "Engine" in self.name:
@@ -1219,20 +1340,28 @@ class Controller:
             self.Times = dict()
 
             buffer = [
-                ["LOXMVTime",  "LOX MV\nTime (ms)",  blue,  0.45,  0.625, 3],
-                ["FuelMVTime", "Fuel MV\nTime (ms)", red,   0.525, 0.625, 2],
-                ["IGN1Time",   "IGN 1\nTime (ms)",   green, 0.45,  0.525, 4],
-                ["IGN2Time",   "IGN 2\nTime (ms)",   green, 0.525, 0.525, 5],
+                ["LOXMVTime",  "LOX MV\nTime (ms)",  blue,  0, 1, 3],
+                ["FuelMVTime", "Fuel MV\nTime (ms)", red,   1, 1, 2],
+                ["IGN1Time",   "IGN 1\nTime (ms)",   green, 0, 0, 4],
+                ["IGN2Time",   "IGN 2\nTime (ms)",   green, 1, 0, 5],
             ]
             
             for name1, text1, fg, relx, rely, cid in buffer:
+                pt = np.array([relx, rely])
+                adj = TransformBox(pt, (1/3,0), (0,1/6))
+                tf = boxEngineControllerGrid * adj
+                
                 self.Times[name1] = Label(self.parent2, text=text1, fg=fg, bg=black, font=aFont)
-                self.Times[name1].place(relx=relx, rely=rely)
+                self.Times[name1].place(**tf.asAbsArgs((0, -1)))
 
                 name2 = name1 + '2'
                 text2 = str(self.canReceive.Controllers[self.id][cid]/1000)
                 self.Times[name2] = Label(self.parent2, text=text2, fg=orange, bg=black, font=("Verdana", 9))
-                self.Times[name2].place(relx=relx, rely=rely + 0.05)
+                self.Times[name2].place(**tf.asAbsArgs((0, 1)))
+
+                # Draws the background box
+                pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
+                Screen2.create_line(*tf(pts).tolist(), fill=fg, width=1, capstyle='projecting', joinstyle='miter')
 
         # self.EMA.place(relx=.01, rely=0.575, relwidth=1 / 10, relheight=.02)
 
@@ -1375,15 +1504,12 @@ class CanSend:
         if CanStatus:
             msg = can.Message(arbitration_id=ID,
                             data=DATA, is_extended_id=False)
-            bus.send(msg)
-
-#bus = can.interface.Bus(channel='can0', bustype='socketcan')  # ///////////////
-bus = can.interface.Bus(channel='virtual', bustype='virtual')  # ///////////////
+            self.bus.send(msg)
 
 if CanStatus:
 
-    #busargs = dict(channel='can0', bustype='socketcan')
-    busargs = dict(channel='virtual', bustype='virtual')
+    #busargs = dict(channel='virtual', bustype='virtual')
+    busargs = dict(channel='can0', bustype='socketcan')
     
     canReceive = CanReceive(**busargs)
     canSend = CanSend(**busargs)
