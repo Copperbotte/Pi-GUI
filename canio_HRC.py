@@ -4,6 +4,7 @@ from bitarray.util import ba2int
 from bitarray import bitarray
 import time
 import struct
+from lint import docstring
 
 NODEID = 8
 VERIFICATIONID = 166
@@ -291,176 +292,323 @@ class CanSend:
         self.send(ID, DATA)
 
     ##############################
-    ########### Sensors ##########
+    ########## Generics ##########
     ##############################
-
-    def sensor_resetAll(self, id):
-        settingID = 0
-        DATA = [VERIFICATIONID, id, settingID]
-        self.send(NODEID, DATA)
-
-    def sensor_setSampleRate(self, id, mode):
-        if isinstance(mode, str):
-            mode = mode.upper()
-
-            modes = dict(SLOW=1, MEDIUM=2, FAST=3)
-            if mode in modes:
-                DATA = [VERIFICATIONID, id, modes[mode]]
-                self.send(NODEID, DATA)
-        return mode
-
-    def sensor_setAlphaEMA(self, id, var, label):
-        settingID = 4
-        if intTypeCheck(var, int, label, 8):
-            binstr = bitstring.BitArray(int=int(var.get()), length=8).bin
-            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2)]
-            self.send(NODEID, DATA)
-
-    ##############################
-    ########### Valves ###########
-    ##############################
+    #     These functions are    #
+    # commonly used throughout   #
+    # the rest of CanSend. All   #
+    # other functions are for    #
+    # your convinience, and      #
+    # derive from these.         #
     
-    def valve_valveActuation(self, commandID, state, offState, onState):
-        DATA = [offState if state else onState]
-        self.send(commandID, DATA)
+    @docstring("""
+    # Sets the timing for the target id.
+    # 
+    # Arguments:
+    # id: Message id -- Setters in range [32, 36].
+    # time_micros: unsigned 40 bit integer??? -- in microseconds from ???
+    """)
+    def set_timing(self, id, time_micros):
+        binstr = bitstring.BitArray(int=time_micros, length=40).bin
+        data = [binstr[i:i+8] for i in range(0, len(binstr), 8)]
+        self.send(id, data)
 
-    def valve_resetAll(self, id):
-        settingID = 0
-        DATA = [VERIFICATIONID, id, settingID]
-        self.send(NODEID, DATA)
-
-    def valve_setValveType(self, id, val):
-        settingID = 1
-        if isinstance(val, str):
-            val = val.upper()
-            print(val)
-            if val == "NORMALLY CLOSED":
-                DATA = [VERIFICATIONID, id, settingID, 0]
-                self.send(NODEID, DATA)
-            elif val == "NORMALLY OPEN":
-                DATA = [VERIFICATIONID, id, settingID, 1]
-                self.send(NODEID, DATA)
-
-    def valve_updateSetting(self, id, var, label, settingID, length=32):
-        if intTypeCheck(var, int, label, length):
-            binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
-            DATA = [VERIFICATIONID, id, settingID] + [int(binstr[i:i+8], 2) for i in range(0, length, 8)]
-            self.send(NODEID, DATA)
-
-    def valve_setFullDutyTime(self, id, var, label):
-        self.valve_updateSetting(id, var, label, 2, length=32)
-
-    def valve_setFullDutyCyclePWM(self, id, var, label):
-        self.valve_updateSetting(id, var, label, 3, length=16)
-
-    def valve_setHoldDutyCyclePWM(self, id, var, label):
-        self.valve_updateSetting(id, var, label, 4, length=8)
-
-    def valve_setWarmDutyCyclePWM(self, id, var, label):
-        self.valve_updateSetting(id, var, label, 5, length=16)
-
-    def valve_setLiveOutTime(self, id, var, label):
-        self.valve_updateSetting(id, var, label, 1, length=32)
+    @docstring("""
+    # Sends a unary message.
+    # 
+    # Arguments:
+    # id: Command id -- Defined in Config.h
+    """)
+    def send_unary_message(self, id):
+        self.send(id, [])
 
     ##############################
-    ########### States ###########
+    ###### Vehicle Commands ######
+    ##############################
+        
+    @docstring("""
+    # Sends the abort command.
+    """)
+    def abort(self):
+        self.send_unary_message(ABORT)
+
+    @docstring("""
+    # Sends the vent command.
+    """)
+    def vent(self):
+        self.send_unary_message(VENT)
+
+    @docstring("""
+    # Sends the fire command.
+    """)
+    def fire(self):
+        self.send_unary_message(FIRE)
+
+    @docstring("""
+    # Sends the tank pressurize command.
+    """)
+    def tank_press(self):
+        self.send_unary_message(TANK_PRESS)
+
+    @docstring("""
+    # Sends the high press pressurize command.
+    """)
+    def high_press(self):
+        self.send_unary_message(HIGH_PRESS)
+
+    @docstring("""
+    # Sends the standby command.
+    """)
+    def standby(self):
+        self.send_unary_message(STANDBY)
+
+    @docstring("""
+    # Sends the passive command.
+    """)
+    def passive(self):
+        self.send_unary_message(PASSIVE)
+
+    @docstring("""
+    # Sends the test command.
+    """)
+    def test(self):
+        self.send_unary_message(TEST)
+
+    ##############################
+    ##### Valves & Igniters ######
+    ##############################
+        
+    @docstring("""
+    # Sets Igniter 1 to off.
+    """)
+    def ign1_off(self):
+        self.send_unary_message(IGN1_OFF)
+
+
+    @docstring("""
+    # Sets Igniter 1 to on.
+    """)
+    def ign1_on(self):
+        self.send_unary_message(IGN1_ON)
+
+
+    @docstring("""
+    # Sets Igniter 2 to off.
+    """)
+    def ign2_off(self):
+        self.send_unary_message(IGN2_OFF)
+
+
+    @docstring("""
+    # Sets Igniter 2 to on.
+    """)
+    def ign2_on(self):
+        self.send_unary_message(IGN2_ON)
+
+
+    @docstring("""
+    # Sets High Pressure Vent to close.
+    """)
+    def hv_close(self):
+        self.send_unary_message(HV_CLOSE)
+
+
+    @docstring("""
+    # Sets High Pressure Vent open.
+    """)
+    def hv_open(self):
+        self.send_unary_message(HV_OPEN)
+
+
+    @docstring("""
+    # Sets High Pressure to close.
+    """)
+    def hp_close(self):
+        self.send_unary_message(HP_CLOSE)
+
+
+    @docstring("""
+    # Sets High Pressure to open.
+    """)
+    def hp_open(self):
+        self.send_unary_message(HP_OPEN)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Dome Vent to close.
+    """)
+    def ldv_close(self):
+        self.send_unary_message(LDV_CLOSE)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Dome Vent to open.
+    """)
+    def ldv_open(self):
+        self.send_unary_message(LDV_OPEN)
+
+
+    @docstring("""
+    # Sets Fuel Dome Vent to close.
+    """)
+    def fdv_close(self):
+        self.send_unary_message(FDV_CLOSE)
+
+
+    @docstring("""
+    # Sets Fuel Dome Vent to open.
+    """)
+    def fdv_open(self):
+        self.send_unary_message(FDV_OPEN)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Dome Regulator to close.
+    """)
+    def ldr_close(self):
+        self.send_unary_message(LDR_CLOSE)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Dome Regulator to open.
+    """)
+    def ldr_open(self):
+        self.send_unary_message(LDR_OPEN)
+
+
+    @docstring("""
+    # Sets Fuel Dome Regulator to close.
+    """)
+    def fdr_close(self):
+        self.send_unary_message(FDR_CLOSE)
+
+
+    @docstring("""
+    # Sets Fuel Dome Regulator to open.
+    """)
+    def fdr_open(self):
+        self.send_unary_message(FDR_OPEN)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Vent to close.
+    """)
+    def lv_close(self):
+        self.send_unary_message(LV_CLOSE)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Vent to open.
+    """)
+    def lv_open(self):
+        self.send_unary_message(LV_OPEN)
+
+
+    @docstring("""
+    # Sets Fuel Vent to close.
+    """)
+    def fv_close(self):
+        self.send_unary_message(FV_CLOSE)
+
+
+    @docstring("""
+    # Sets Fuel Vent to open.
+    """)
+    def fv_open(self):
+        self.send_unary_message(FV_OPEN)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Main Valve to close.
+    """)
+    def lmv_close(self):
+        self.send_unary_message(LMV_CLOSE)
+
+
+    @docstring("""
+    # Sets Liquid Oxygen Main Valve to open.
+    """)
+    def lmv_open(self):
+        self.send_unary_message(LMV_OPEN)
+
+
+    @docstring("""
+    # Sets Fuel Main Valve to close.
+    """)
+    def fmv_close(self):
+        self.send_unary_message(FMV_CLOSE)
+
+
+    @docstring("""
+    # Sets Fuel Main Valve to open.
+    """)
+    def fmv_open(self):
+        self.send_unary_message(FMV_OPEN)
+
+    ##############################
+    ########### Timing ###########
     ##############################
 
-    def state_StateActuation(self, commandID, state, offState, onState):
-        DATA = [onState if state else offState]
-        self.send(commandID, DATA)
+    @docstring("""
+    # Sets the ignition time for both igniters.
+    # 
+    # Arguments:
+    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    """)
+    def set_ignition(self, time_micros):
+        self.set_timing(SET_IGNITION, time_micros)
+
+    @docstring("""
+    # Sets the opening time for the liquid oxygen main valve.
+    # 
+    # Arguments:
+    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    """)
+    def set_lmv_open(self, time_micros):
+        self.set_timing(SET_LMV_OPEN, time_micros)
+
+    @docstring("""
+    # Sets the opening time for the fuel main valve.
+    # 
+    # Arguments:
+    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    """)
+    def set_fmv_open(self, time_micros):
+        self.set_timing(SET_FMV_OPEN, time_micros)
+
+    @docstring("""
+    # Sets the closing time for the liquid oxygen main valve.
+    # 
+    # Arguments:
+    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    """)
+    def set_lmv_close(self, time_micros):
+        self.set_timing(SET_LMV_CLOSE, time_micros)
+
+    @docstring("""
+    # Sets the closing time for the fuel main valve.
+    # 
+    # Arguments:
+    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    """)
+    def set_fmv_close(self, time_micros):
+        self.set_timing(SET_FMV_CLOSE, time_micros)
 
     ##############################
-    ######### Controller #########
+    ####### Miscellaneous ########
     ##############################
+        
+    @docstring("""
+    # Pings the rocket.
+    """)
+    def ping(self):
+        self.send_unary_message(PING_PI_ROCKET)
 
-    def controller_updateSetting(self, id, var, label, settingID, length=32, Type=float):
-        if intTypeCheck(var, Type, label, length):
-            if Type == float:
-                binstr = bitstring.BitArray(float=float(var.get()), length=length).bin
-            if Type == int:
-                binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
-            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            self.send(NODEID, DATA)
-
-    def controller_updateActuation(self, id, var, label, settingID, length=32):
-        if intTypeCheck(var, int, label, length):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=length).bin
-            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            self.send(NODEID, DATA)
-
-    def controller_resetAll(self, id):
-        DATA = [VERIFICATIONID, id, 0]
-        self.send(NODEID, DATA)
-
-    def controller_setFuelMVAutosequenceActuation(self, id, var, label):
-        self.controller_updateActuation(id, var, label, 1)
-
-    def controller_setLoxMVAutosequenceActuation(self, id, var, label):
-        self.controller_updateActuation(var, id, label, 2)
-
-    def controller_setIgniter1ActuationActuation(self, id, var, label):
-        self.controller_updateActuation(var, id, label, 3)
-
-    def controller_setIgniter2ActuationActuation(self, id, var, label):
-        self.controller_updateActuation(var, id, label, 4)
-
-    def controller_setThrottleProgramPoint(self, id, time, throttlepoint, label):
-        settingID = 5
-        if intTypeCheck(time, int, label, 16):
-            timebin = bitstring.BitArray(int=int(time.get()), length=16).bin
-            throttle = bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin
-            DATA = [VERIFICATIONID, id, settingID, int(timebin[0:8], 2), int(timebin[8:16], 2),
-                    int(throttle[0:8], 2), int(throttle[8:16], 2)]
-            self.send(NODEID, DATA)
-
-    def controller_throttleProgramReset(self, id):
-        settingID = 6
-        DATA = [VERIFICATIONID, id, settingID]
-        self.send(NODEID, DATA)
-
-    # This one is too different to generalize.
-    # On second thought, maybe this is the same as the throttle set?
-    def controller_throttleProgramResetSpecific(self, id, time, throttlepoint, label):
-        settingID = 7
-        if intTypeCheck(time, int, label, 16):
-            binstr = bitstring.BitArray(int=int(time.get()), length=16).bin
-            binstr.append(bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin)
-            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            self.send(NODEID, DATA)
-
-    def controller_setK_p(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 1)
-
-    def controller_setK_i(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 2)
-
-    def controller_setK_d(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 3)
-
-    def controller_setControllerThreshold(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 4)
-
-    def controller_setVentFailsafePressure(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 5)
-
-    def controller_setValveMinimumEnergizeTime(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 6, Type=int)
-
-    def controller_setValveMinimumDeenergizeTime(self, id, var, label):
-        self.controller_updateSetting(var, id, label, 7, Type=int)
-
-    def controller_setCountdownStart(self, id, var, label):
-        settingID = 1
-        if intTypeCheck(var, int, label, 32):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=32).bin
-            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            self.send(NODEID, DATA)
+    @docstring("""
+    # Zeros the pressure transducers.
+    """)
+    def zero_pts(self):
+        self.send_unary_message(ZERO_PTS)
 
 ################################################################################
 ################################# Can Receive ##################################
