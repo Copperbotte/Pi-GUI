@@ -94,6 +94,19 @@ class TransformBox:
         dx, dy, origin = np.linalg.inv(self.transform)[:-1].T
         return TransformBox(origin, dx, dy)
 
+class ImageCache:
+    def __init__(self):
+        self.cache = dict()
+    
+    def __call__(self, src, resize=None):
+        if src not in self.cache:
+            self.cache[src] = Image.open(src)
+            print("ImageCache: Loaded \"%s\""%src)
+            if type(resize) != type(None):
+                self.cache[src] = self.cache[src].resize(resize)
+            self.cache[src] = ImageTk.PhotoImage(self.cache[src])
+        return self.cache[src]
+
 class Main:
     # Data needed to set up the Valve, Sensors, States
     # Name, VBuffer Index, Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
@@ -212,10 +225,9 @@ class Main:
         tf = self.boxWireGrid
 
         for src, i in buffer:
-            img = Image.open(src)
-            render = ImageTk.PhotoImage(img)
-            label = Label(self.parentMainScreen, image=render, bg=black)
-            label.image = render
+            img = self.imageCache(src)
+            label = Label(self.parentMainScreen, image=img, bg=black)
+            label.image = img
             label.place(**self.boxWireGrid.asAbsArgs(self.Vertex_Buffer[i]))
         
     def propLinePlacement(self):
@@ -309,16 +321,16 @@ class Main:
                             len(Main.States) - Main.States[i][6] + 1) - .05, relheight=1 / len(Main.States) / 2,
                                                          relwidth=0.125)
         if self.manualOverrideState:
-            self.photo = PhotoImage(file="GUI Images/ManualOverrideDisabledButton.png")
-            self.Button = Button(self.parentMainScreen, image=self.photo, fg='red', bg='black', bd=5)
+            img = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
+            self.Button = Button(self.parentMainScreen, image=img, fg='red', bg='black', bd=5)
             self.parentMainScreen.killSwitchState = False
             self.reminderButtonOfCurrState.destroy()
             Main.CurrState = self.savedCurrState
             # msg = can.Message(arbitration_id=self.overrideCommandID, data=[self.overrideCommandON], is_extended_id=False)
             # bus.send(msg)
         else:
-            self.photo = PhotoImage(file="GUI Images/ManualOverrideEnabledButton.png")
-            self.Button = Button(self.parentMainScreen, image=self.photo, fg='green', bg='black', bd=5)
+            img = self.imageCache("GUI Images/ManualOverrideEnabledButton.png")
+            self.Button = Button(self.parentMainScreen, image=img, fg='green', bg='black', bd=5)
             self.manualOverrideState = True
             Main.CurrState = "Override"
             # msg = can.Message(arbitration_id=self.overrideCommandID, data=[self.overrideCommandOFF], is_extended_id=False)
@@ -796,6 +808,8 @@ class Main:
                                          highlightthickness=0)
         self.parentSecondScreen.place(relx=0, rely=0, relwidth=1, relheight=1)
 
+        self.imageCache = ImageCache()
+
         self.aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
         
         self.PropNodeState = Label(self.parentMainScreen, text="Prop Node State", fg=orange, bg=black, font=("Arial", 25))
@@ -818,7 +832,7 @@ class Main:
         self.Abort.VentAbortInstantiation()
         # Instantiates Every Valve
         for valve in Main.valves:
-            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend, self.boxValveGrid, self.boxWireGrid, self.Vertex_Buffer))
+            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend, self.boxValveGrid, self.boxWireGrid, self.Vertex_Buffer, self.imageCache))
 
         # Instantiates Every Sensor
         for sensor in Main.sensors:
@@ -986,7 +1000,7 @@ class Sensors:
 class Valves:
     numOfValves = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid, boxWireGrid, Vertex_Buffer):
+    def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid, boxWireGrid, Vertex_Buffer, imageCache):
         # Name, VBuffer Index, Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
         #['HV',    4, 16, 2, 34, 35, yellow, 122, 2], 
 
@@ -998,6 +1012,7 @@ class Valves:
 
         self.canReceive = canReceive
         self.canSend = canSend
+        self.imageCache = imageCache
         self.parent = parent
         self.SecondScreen = SecondScreen
         self.state = False
@@ -1016,8 +1031,7 @@ class Valves:
         else:
             self.photo = "Valve Buttons/" + self.name + "-Closed-EnableOn.png"
 
-        self.photo = Image.open(self.photo).resize((72,72))
-        self.photo = ImageTk.PhotoImage(self.photo)
+        self.photo = self.imageCache(self.photo, resize=(72,72))
 
         # Displays a button on a vertex in the propline diagram.
         self.Button = Button(parent, font=("Verdana", 10), fg=red, bg=bg)
@@ -1081,12 +1095,8 @@ class Valves:
         #     self.status = can_receive.node_state[self.id]
         if CanStatus:
             if self.nodeID == 3:
-                if self.status == self.canReceive.ValvesRenegadeProp[self.HPChannel]:
-                    pass
                 self.status = self.canReceive.ValvesRenegadeProp[self.HPChannel]
             if self.nodeID == 2:
-                if self.status == self.canReceive.ValvesRenegadeEngine[self.HPChannel]:
-                    pass
                 self.status = self.canReceive.ValvesRenegadeEngine[self.HPChannel]
             self.VoltageLabel2.config(text = self.canReceive.Sensors[self.sensorID])
             
@@ -1107,8 +1117,7 @@ class Valves:
                 #print(self.photo_name + " Does not exist. Status is " + str(self.status))
             else:
                 #print(self.photo_name, self.status)
-                img = Image.open(self.photo_name).resize((72,72))
-                self.photo = ImageTk.PhotoImage(img)
+                self.photo = self.imageCache(self.photo_name, resize=(72,72))
                 self.Button.config(image=self.photo)
 
 
