@@ -7,6 +7,229 @@ import struct
 
 NODEID = 8
 VERIFICATIONID = 166
+SENSOR_MULTIPLIER = 100
+
+################################################################################
+############## HeraclitusRocketController / Config.h Definitions ###############
+################################################################################
+
+# Valves & Igniters
+NUM_VALVES   = 10
+NUM_IGNITERS = 2
+
+# Vehicle Commands
+ABORT        = 0
+VENT         = 1
+FIRE         = 2
+TANK_PRESS   = 3
+HIGH_PRESS   = 4
+STANDBY      = 5
+PASSIVE      = 6
+TEST         = 7
+
+# Valve & Igniter (HPO Commands)
+IGN1_OFF     = 8   # Igniter One
+IGN1_ON      = 9
+
+IGN2_OFF     = 10  # Igniter Two
+IGN2_ON      = 11
+
+HV_CLOSE     = 12  # High Vent valve
+HV_OPEN      = 13
+
+HP_CLOSE     = 14  # High Press valve
+HP_OPEN      = 15
+
+LDV_CLOSE    = 16  # Lox Dome Vent valve
+LDV_OPEN     = 17
+
+FDV_CLOSE    = 18  # Fuel Dome Vent valve
+FDV_OPEN     = 19
+
+LDR_CLOSE    = 20  # Lox Dome Reg valve
+LDR_OPEN     = 21
+
+FDR_CLOSE    = 22  # Fuel Dome Reg valve
+FDR_OPEN     = 23
+
+LV_CLOSE     = 24  # Lox Vent valve
+LV_OPEN      = 25
+
+FV_CLOSE     = 26  # Fuel Vent valve
+FV_OPEN      = 27
+
+LMV_CLOSE    = 28  # Lox Main valve
+LMV_OPEN     = 29
+
+FMV_CLOSE    = 30  # Fuel Main valve
+FMV_OPEN     = 31
+
+# Timing
+SET_IGNITION  = 32  # Set ignition time for both igniters.
+SET_LMV_OPEN  = 33  # Set LMV open time.
+SET_FMV_OPEN  = 34  # Set FMV open time. 
+SET_LMV_CLOSE = 35  # Set LMV close time.
+SET_FMV_CLOSE = 36  # Set FMV close time.
+
+GET_IGNITION  = 37  # Confirm ignition time for both igniters.
+GET_LMV_OPEN  = 38  # Confirm LMV open time.
+GET_FMV_OPEN  = 39  # Confirm FMV open time.
+GET_LMV_CLOSE = 40  # Confirm LMV close time.
+GET_FMV_CLOSE = 41  # Confirm FMV close time.
+
+# Ping
+PING_PI_ROCKET = 42  # *Important*: Pi Box sends a ping to the rocket. 
+PING_ROCKET_PI = 43  # Rocket sends a ping to the Pi Box.
+
+# PT Configuration
+ZERO_PTS = 44  # Zero the pressure transducers.
+
+# State Reports
+SR_PROP   = 127
+SR_ENGINE = 128
+
+# Sensor Reports
+SENS_1_4_PROP     = 129 # Lox High,   Fuel High, Lox Dome,   Fuel Dome
+SENS_5_8_PROP     = 130 # Lox Tank1,  Lox Tank2, Fuel Tank1, Fuel Tank2
+SENS_9_12_ENGINE  = 131 # Pneumatics, Lox Inlet, Fuel Inlet, Fuel Injector
+SENS_13_16_ENGINE = 132 # Chamber1,   Chamber2,  UNUSED,     UNUSED
+
+# Data Direction Inputs 
+INPUT  = 0
+OUTPUT = 1
+
+# Igniter Digital Pin Designations and IDs | ALARA LOWER 
+
+IGN1_ID      = 10  # Igniter A / ENG-IGNA / ALARA Lower
+IGN1_PIN_DIG = 83  #ALARA: DIG5 | Teensy 3.6 MCU Pin: PTC16
+IGN1_PIN_PWM = 2 
+
+
+IGN2_ID      = 11  # Igniter B / ENG-IGNB
+IGN2_PIN_DIG = 81  # ALARA: DIG5 | Teensy 3.6 MCU Pin: PTC14
+IGN2_PIN_PWM = 10  # In Dan's Code they are both 2?  
+      
+
+# Valve Digital Pin Designations and IDs | ALARA LOWER 
+
+HP_ID        = 20  # High Press valve / SV HI PRES  
+HP_PIN_DIG   = 87  # ALARA: DIG1 | Teensy 3.6 MCU Pin: PTD10
+HP_PIN_PWM   = 5
+
+HV_ID        = 21  # High Vent valve / SV HI PRES V 
+HV_PIN_DIG   = 86  # ALARA: DIG2 | Teensy 3.6 MCU Pin: PTC19
+HV_PIN_PWM   = 6
+
+FMV_ID       = 22  # Fuel Main valve / SV MV FUEL 
+FMV_PIN_DIG  = 85  # ALARA: DIG3 | Teensy 3.6 MCU Pin: PTC18
+FMV_PIN_PWM  = 8  
+
+LMV_ID       = 23  # Lox Main valve / SV MV LOX
+LMV_PIN_DIG  = 84  # ALARA: DIG4 | Teensy 3.6 MCU Pin: PTC17
+LMV_PIN_PWM  = 7
+
+# Valve Digital Pin Designations and IDs | ALARA UPPER 
+
+LV_ID        = 24  # Lox Vent valve / SV LOX V
+LV_PIN_DIG   = 87  # ALARA: DIG1 | Teensy 3.6 MCU Pin: PTD10
+LV_PIN_PWM   = 5
+
+LDV_ID       = 25  # Lox Dome Vent valve / SV DREG L
+LDV_PIN_DIG  = 85  # ALARA: DIG3 | Teensy 3.6 MCU Pin: PTC18
+LDV_PIN_PWM  = 8
+
+LDR_ID       = 26  # Lox Dome Reg valve / SV DREG LV
+LDR_PIN_DIG  = 84  # ALARA: DIG4 | Teensy 3.6 MCU Pin: PTC17
+LDR_PIN_PWM  = 7
+
+FV_ID        = 27  # Fuel Vent valve / SV FUEL V 
+FV_PIN_DIG   = 83  # ALARA: DIG5 | Teensy 3.6 MCU Pin: PTC16
+FV_PIN_PWM   = 2
+
+FDV_ID       = 28  # Fuel Dome Vent valve / SV DREG F V 
+FDV_PIN_DIG  = 81  # ALARA: DIG7 | Teensy 3.6 MCU Pin: PTC14
+FDV_PIN_PWM  = 10
+
+FDR_ID       = 29  # Fuel Dome Reg valve /  SV DREG F
+FDR_PIN_DIG  = 80  # ALARA: DIG8 | Teensy 3.6 MCU Pin: PTC13
+FDR_PIN_PWM  = 9
+
+
+
+# Pressure Transducer Sesnor Pin Designations, IDs, and Calibration Values
+# (sensors are currently uncalibrated)
+
+#Upper Prop Node:
+PT_LOX_HIGH_ID         = (1<<0)  #00000000 00000001  Upper A22
+PT_LOX_HIGH_PIN        = "A22"
+PT_LOX_HIGH_CAL_M      = 1.0
+PT_LOX_HIGH_CAL_B      = 0.0
+
+PT_FUEL_HIGH_ID        = (1<<1)  #00000000 00000010  Upper A21
+PT_FUEL_HIGH_PIN       = "A21"
+PT_FUEL_HIGH_CAL_M     = 1.0
+PT_FUEL_HIGH_CAL_B     = 0.0
+
+PT_LOX_DOME_ID         = (1<<2)  #00000000 00000100  Upper  A3
+PT_LOX_DOME_PIN        = "A3"
+PT_LOX_DOME_CAL_M      = 1.0
+PT_LOX_DOME_CAL_B      = 0.0
+
+PT_FUEL_DOME_ID        = (1<<3)  #00000000 00001000  Upper  A2
+PT_FUEL_DOME_PIN       = "A2"
+PT_FUEL_DOME_CAL_M     = 1.0
+PT_FUEL_DOME_CAL_B     = 0.0
+
+PT_LOX_TANK_1_ID       = (1<<4)  #00000000 00010000  Upper A14
+PT_LOX_TANK_1_PIN      = "A14"
+PT_LOX_TANK_1_CAL_M    = 1.0
+PT_LOX_TANK_1_CAL_B    = 0.0
+
+PT_LOX_TANK_2_ID       = (1<<5)  #00000000 00100000  Upper A11
+PT_LOX_TANK_2_PIN      = "A11"
+PT_LOX_TANK_2_CAL_M    = 1.0
+PT_LOX_TANK_2_CAL_B    = 0.0
+
+PT_FUEL_TANK_1_ID      = (1<<6)  #00000000 01000000  Upper A15
+PT_FUEL_TANK_1_PIN     = "A15"
+PT_FUEL_TANK_1_CAL_M   = 1.0
+PT_FUEL_TANK_1_CAL_B   = 0.0
+
+PT_FUEL_TANK_2_ID      = (1<<7)  #00000000 10000000  Upper A10
+PT_FUEL_TANK_2_PIN     = "A10"
+PT_FUEL_TANK_2_CAL_M   = 1.0
+PT_FUEL_TANK_2_CAL_B   = 0.0
+
+#Lower Engine Node:
+PT_PNUEMATICS_ID       = (1<<8)  #00000001 00000000  Lower A15
+PT_PNUEMATICS_PIN      = "A15"
+PT_PNUEMATICS_CAL_M    = 1.0
+PT_PNUEMATICS_CAL_B    = 0.0
+
+PT_LOX_INLET_ID        = (1<<9)  #00000010 00000000  Lower A21
+PT_LOX_INLET_PIN       = "A21"
+PT_LOX_INLET_CAL_M     = 1.0
+PT_LOX_INLET_CAL_B     = 0.0
+
+PT_FUEL_INLET_ID       = (1<<10) #00000100 00000000  Lower A22
+PT_FUEL_INLET_PIN      = "A22"
+PT_FUEL_INLET_CAL_M    = 1.0
+PT_FUEL_INLET_CAL_B    = 0.0
+
+PT_FUEL_INJECTOR_ID    = (1<<11) #00001000 00000000  Lower A14
+PT_FUEL_INJECTOR_PIN   = "A14"
+PT_FUEL_INJECTOR_CAL_M = 1.0
+PT_FUEL_INJECTOR_CAL_B = 0.0
+
+PT_CHAMBER_1_ID        = (1<<12) #00010000 00000000  Lower A10
+PT_CHAMBER_1_PIN       = "A10"
+PT_CHAMBER_1_CAL_M     = 1.0
+PT_CHAMBER_1_CAL_B     = 0.0
+
+PT_CHAMBER_2_ID        = (1<<13) #00100000 00000000  Lower A11
+PT_CHAMBER_2_PIN       = "A11"
+PT_CHAMBER_2_CAL_M     = 1.0
+PT_CHAMBER_2_CAL_B     = 0.0
 
 ################################################################################
 ################################### Can Send ###################################
