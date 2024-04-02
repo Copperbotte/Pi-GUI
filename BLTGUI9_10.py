@@ -39,6 +39,193 @@ DANGERZONE = 300
 NODEID = 8
 VERIFICATIONID = 166
 
+class CanSend:
+    def __init__(self, **busargs):
+        self.bus = can.interface.Bus(**busargs)
+
+    def send(self, ID, DATA):
+        print(DATA)
+        if CanStatus:
+            msg = can.Message(arbitration_id=ID,
+                            data=DATA, is_extended_id=False)
+            self.bus.send(msg)
+
+    def __call__(self, ID, DATA):
+        self.send(ID, DATA)
+
+    ##############################
+    ########### Sensors ##########
+    ##############################
+
+    def sensor_resetAll(self, id):
+        settingID = 0
+        DATA = [VERIFICATIONID, id, settingID]
+        self.send(NODEID, DATA)
+
+    def sensor_setSampleRate(self, id, mode):
+        if isinstance(mode, str):
+            mode = mode.upper()
+
+            modes = dict(SLOW=1, MEDIUM=2, FAST=3)
+            if mode in modes:
+                DATA = [VERIFICATIONID, id, modes[mode]]
+                self.send(NODEID, DATA)
+        return mode
+
+    def sensor_setAlphaEMA(self, id, var, label):
+        settingID = 4
+        if intTypeCheck(var, int, label, 8):
+            binstr = bitstring.BitArray(int=int(var.get()), length=8).bin
+            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2)]
+            self.send(NODEID, DATA)
+
+    ##############################
+    ########### Valves ###########
+    ##############################
+    
+    def valve_valveActuation(self, commandID, state, offState, onState):
+        DATA = [offState if state else onState]
+        self.send(commandID, DATA)
+
+    def valve_resetAll(self, id):
+        settingID = 0
+        DATA = [VERIFICATIONID, id, settingID]
+        self.send(NODEID, DATA)
+
+    def valve_setValveType(self, id, val):
+        settingID = 1
+        if isinstance(val, str):
+            val = val.upper()
+            print(val)
+            if val == "NORMALLY CLOSED":
+                DATA = [VERIFICATIONID, id, settingID, 0]
+                self.send(NODEID, DATA)
+            elif val == "NORMALLY OPEN":
+                DATA = [VERIFICATIONID, id, settingID, 1]
+                self.send(NODEID, DATA)
+
+    def valve_updateSetting(self, id, var, label, settingID, length=32):
+        if intTypeCheck(var, int, label, length):
+            binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
+            DATA = [VERIFICATIONID, id, settingID] + [int(binstr[i:i+8], 2) for i in range(0, length, 8)]
+            self.send(NODEID, DATA)
+
+    def valve_setFullDutyTime(self, id, var, label):
+        self.valve_updateSetting(id, var, label, 2, length=32)
+
+    def valve_setFullDutyCyclePWM(self, id, var, label):
+        self.valve_updateSetting(id, var, label, 3, length=16)
+
+    def valve_setHoldDutyCyclePWM(self, id, var, label):
+        self.valve_updateSetting(id, var, label, 4, length=8)
+
+    def valve_setWarmDutyCyclePWM(self, id, var, label):
+        self.valve_updateSetting(id, var, label, 5, length=16)
+
+    def valve_setLiveOutTime(self, id, var, label):
+        self.valve_updateSetting(id, var, label, 1, length=32)
+
+    ##############################
+    ########### States ###########
+    ##############################
+
+    def state_StateActuation(self, commandID, state, offState, onState):
+        DATA = [onState if state else offState]
+        self.send(commandID, DATA)
+
+    ##############################
+    ######### Controller #########
+    ##############################
+
+    def controller_updateSetting(self, id, var, label, settingID, length=32, Type=float):
+        if intTypeCheck(var, Type, label, length):
+            if Type == float:
+                binstr = bitstring.BitArray(float=float(var.get()), length=length).bin
+            if Type == int:
+                binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
+            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
+                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
+            self.send(NODEID, DATA)
+
+    def controller_updateActuation(self, id, var, label, settingID, length=32):
+        if intTypeCheck(var, int, label, length):
+            var = int(var.get())* 1000
+            binstr = bitstring.BitArray(int=int(var), length=length).bin
+            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
+            self.send(NODEID, DATA)
+
+    def controller_resetAll(self, id):
+        DATA = [VERIFICATIONID, id, 0]
+        self.send(NODEID, DATA)
+
+    def controller_setFuelMVAutosequenceActuation(self, id, var, label):
+        self.controller_updateActuation(id, var, label, 1)
+
+    def controller_setLoxMVAutosequenceActuation(self, id, var, label):
+        self.controller_updateActuation(var, id, label, 2)
+
+    def controller_setIgniter1ActuationActuation(self, id, var, label):
+        self.controller_updateActuation(var, id, label, 3)
+
+    def controller_setIgniter2ActuationActuation(self, id, var, label):
+        self.controller_updateActuation(var, id, label, 4)
+
+    def controller_setThrottleProgramPoint(self, id, time, throttlepoint, label):
+        settingID = 5
+        if intTypeCheck(time, int, label, 16):
+            timebin = bitstring.BitArray(int=int(time.get()), length=16).bin
+            throttle = bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin
+            DATA = [VERIFICATIONID, id, settingID, int(timebin[0:8], 2), int(timebin[8:16], 2),
+                    int(throttle[0:8], 2), int(throttle[8:16], 2)]
+            self.send(NODEID, DATA)
+
+    def controller_throttleProgramReset(self, id):
+        settingID = 6
+        DATA = [VERIFICATIONID, id, settingID]
+        self.send(NODEID, DATA)
+
+    # This one is too different to generalize.
+    # On second thought, maybe this is the same as the throttle set?
+    def controller_throttleProgramResetSpecific(self, id, time, throttlepoint, label):
+        settingID = 7
+        if intTypeCheck(time, int, label, 16):
+            binstr = bitstring.BitArray(int=int(time.get()), length=16).bin
+            binstr.append(bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin)
+            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
+                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
+            self.send(NODEID, DATA)
+
+    def controller_setK_p(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 1)
+
+    def controller_setK_i(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 2)
+
+    def controller_setK_d(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 3)
+
+    def controller_setControllerThreshold(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 4)
+
+    def controller_setVentFailsafePressure(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 5)
+
+    def controller_setValveMinimumEnergizeTime(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 6, Type=int)
+
+    def controller_setValveMinimumDeenergizeTime(self, id, var, label):
+        self.controller_updateSetting(var, id, label, 7, Type=int)
+
+    def controller_setCountdownStart(self, id, var, label):
+        settingID = 1
+        if intTypeCheck(var, int, label, 32):
+            var = int(var.get())* 1000
+            binstr = bitstring.BitArray(int=int(var), length=32).bin
+            DATA = [VERIFICATIONID, id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
+                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
+            self.send(NODEID, DATA)
+
+
 class Graph:
     def __init__(self, label, parent, relx, rely, bg=black):
         self.label = label
@@ -48,7 +235,6 @@ class Graph:
         self.canvasfigure = FigureCanvasTkAgg(self.figure, master=self.frame)
         self.axis = self.figure.add_subplot()
         self.canvasfigure.get_tk_widget().pack()
-
 
 class TransformBox:
     def __init__(self,
@@ -1020,29 +1206,15 @@ class Sensors:
 
 
     def resetAll(self, var, label):
-        settingID = 0
-        DATA = [VERIFICATIONID, self.idRaw, settingID, ]
-        self.canSend(NODEID, DATA)
+        self.canSend.sensor_resetAll(self.idRaw)
         label.config(text="Command Sent!", fg="green")
 
     def setSampleRate(self, var, label):
-        val = var.get()
-        if isinstance(val, str):
-            print(val.upper())
-            modes = dict(SLOW=1, MEDIUM=2, Fast=3)
-            if val.upper() in modes:
-                DATA = [VERIFICATIONID, self.idRaw, modes[val.upper()], ]
-                self.canSend(NODEID, DATA)
-
-        else:
-            print(val)
+        mode = self.canSend.sensor_setSampleRate(self.idRaw, var.get())
+        print(mode)
 
     def setAlphaEMA(self, var, label):
-        settingID = 4
-        if self.intTypeCheck(var, int, label, 8):
-            binstr = bitstring.BitArray(int=int(var.get()), length=8).bin
-            DATA = [VERIFICATIONID, self.idRaw, settingID, int(binstr[0:8], 2)]
-            self.canSend(NODEID, DATA)
+        self.canSend.sensor_setAlphaEMA(self.idRaw, var, label)
 
 class Valves:
     numOfValves = 0
@@ -1113,52 +1285,29 @@ class Valves:
         if Main.CurrState != "Test" and Main.CurrState != "Override":
             return 0
         print(self.name, self.status)
-        if self.state:
-            DATA = [self.commandOFF]
-            self.canSend(self.commandID, DATA)
-        else:
-
-            DATA = [self.commandON]
-            self.canSend(self.commandID, DATA)
+        self.canSend.valve_valveActuation(self.commandID, self.state, self.commandOFF, self.commandON)
 
     def resetAll(self, var, label):
-        settingID = 0
-        DATA = [VERIFICATIONID, self.id, settingID]
-        self.canSend(NODEID, DATA)
+        self.canSend.valve_resetAll(self.id)
         label.config(text="Command Sent!", fg="green")
 
     def setValveType(self, var, label):
-        settingID = 1
-        val = var.get()
-        if isinstance(val, str):
-            print(val.upper())
-            if val.upper() == "NORMALLY CLOSED":
-                DATA = [VERIFICATIONID, self.id, settingID, 0]
-                self.canSend(NODEID, DATA)
-            elif val.upper() == "NORMALLY OPEN":
-                DATA = [VERIFICATIONID, self.id, settingID, 1]
-                self.canSend(NODEID, DATA)
-
-    def updateSetting(self, var, label, settingID, length=32):
-        if self.intTypeCheck(var, int, label, length):
-            binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
-            DATA = [VERIFICATIONID, self.id, settingID] + [int(binstr[i:i+8], 2) for i in range(0, length, 8)]
-            self.canSend(NODEID, DATA)
+        self.canSend.valve_setValveType(self.id, var.get())
 
     def setFullDutyTime(self, var, label):
-        self.updateSetting(var, label, 2, length=32)
+        self.canSend.valve_setFullDutyTime(self.id, var, label)
 
     def setFullDutyCyclePWM(self, var, label):
-        self.updateSetting(var, label, 3, length=16)
+        self.canSend.valve_setFullDutyCyclePWM(self.id, var, label)
 
     def setHoldDutyCyclePWM(self, var, label):
-        self.updateSetting(var, label, 4, length=8)
+        self.canSend.valve_setHoldDutyCyclePWM(self.id, var, label)
 
     def setWarmDutyCyclePWM(self, var, label):
-        self.updateSetting(var, label, 5, length=16)
+        self.canSend.valve_setWarmDutyCyclePWM(self.id, var, label)
 
     def setLiveOutTime(self, var, label):
-        self.updateSetting(var, label, 1, length=32)
+        self.canSend.valve_setLiveOutTime(self.id, var, label)
 
     def refresh_valve(self):
         # if self.id in can_receive.node_state and self.status is not can_receive.node_state[self.id]:
@@ -1281,13 +1430,10 @@ class States:
             if self.isVentAbort:
                 GUI.StateReset()
             self.state = False
-            DATA = [self.commandOFF]
-            self.canSend(self.commandID, DATA)
         else:
             self.button.config(fg='green')
             self.state = True
-            DATA = [self.commandON]
-            self.canSend(self.commandID, DATA)
+        self.canSend.state_StateActuation(self.commandID, self.state, self.commandOFF, self.commandON)
 
 
 class Controller:
@@ -1364,97 +1510,58 @@ class Controller:
                 Screen2.create_line(*tf(pts).tolist(), fill=fg, width=1, capstyle='projecting', joinstyle='miter')
 
         # self.EMA.place(relx=.01, rely=0.575, relwidth=1 / 10, relheight=.02)
-
-    def updateSetting(self, var, label, settingID, length=32, Type=float):
-        if self.intTypeCheck(var, Type, label, length):
-            if Type == float:
-                binstr = bitstring.BitArray(float=float(var.get()), length=length).bin
-            if Type == int:
-                binstr = bitstring.BitArray(int=int(var.get()), length=length).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            self.canSend(NODEID, DATA)
-
-    def updateActuation(self, var, label, settingID, length=32):
-        if self.intTypeCheck(var, int, label, length):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=length).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8],2), int(binstr[8:16],2), int(binstr[16:24],2), int(binstr[24:32],2)]
-            self.canSend(NODEID, DATA)
         
     def resetAll(self, var, label):
-        settingID = 0
-        DATA = [VERIFICATIONID, self.id, settingID]
-        self.canSend(NODEID, DATA)
+        self.canSend.controller_resetAll(self.id)
         print("RESET")
         label.config(text="Command Sent!", fg="green")
 
     def setFuelMVAutosequenceActuation(self, var, label):
-        self.updateActuation(var, label, 1)
+        self.canSend.controller_setFuelMVAutosequenceActuation(self.id, var, label)
 
     def setLoxMVAutosequenceActuation(self, var, label):
-        self.updateActuation(var, label, 2)
+        self.canSend.controller_setLoxMVAutosequenceActuation(self.id, var, label)
 
     def setIgniter1ActuationActuation(self, var, label):
-        self.updateActuation(var, label, 3)
+        self.canSend.controller_setIgniter1ActuationActuation(self.id, var, label)
 
     def setIgniter2ActuationActuation(self, var, label):
-        self.updateActuation(var, label, 4)
+        self.canSend.controller_setIgniter2ActuationActuation(self.id, var, label)
 
     def setThrottleProgramPoint(self, time, throttlepoint, label):
-        settingID = 5
-        if self.intTypeCheck(time, int, label, 16):
-            timebin = bitstring.BitArray(int=int(time.get()), length=16).bin
-            throttle = bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(timebin[0:8], 2), int(timebin[8:16], 2),
-                    int(throttle[0:8], 2), int(throttle[8:16], 2)]
-            self.canSend(NODEID, DATA)
+        self.canSend.controller_setThrottleProgramPoint(self.id, time, throttlepoint, label)
 
     def throttleProgramReset(self, var, label):
-        settingID = 6
-        DATA = [VERIFICATIONID, self.id, settingID]
-        self.canSend(NODEID, DATA)
+        self.canSend.controller_throttleProgramReset(self.id)
         label.config(text="Command Sent!", fg="green")
 
     # This one is too different to generalize.
     def throttleProgramResetSpecific(self, time, throttlepoint, label):
-        settingID = 7
-        if self.intTypeCheck(time, int, label, 16):
-            binstr = bitstring.BitArray(int=int(time.get()), length=16).bin
-            binstr.append(bitstring.BitArray(int=int(throttlepoint.get()), length=16).bin)
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            self.canSend(NODEID, DATA)
+        self.canSend.controller_throttleProgramResetSpecific(self.id, time, throttlepoint, label)
 
     def setK_p(self, var, label):
-        self.updateSetting(var, label, 1)
+        self.canSend.controller_setK_p(self.id, var, label)
 
     def setK_i(self, var, label):
-        self.updateSetting(var, label, 2)
+        self.canSend.controller_setK_i(self.id, var, label)
 
     def setK_d(self, var, label):
-        self.updateSetting(var, label, 3)
+        self.canSend.controller_setK_d(self.id, var, label)
 
     def setControllerThreshold(self, var, label):
-        self.updateSetting(var, label, 4)
+        self.canSend.controller_setControllerThreshold(self.id, var, label)
 
     def setVentFailsafePressure(self, var, label):
-        self.updateSetting(var, label, 5)
+        self.canSend.controller_setVentFailsafePressure(self.id, var, label)
 
     def setValveMinimumEnergizeTime(self, var, label):
-        self.updateSetting(var, label, 6, Type=int)
+        self.canSend.controller_setValveMinimumEnergizeTime(self.id, var, label)
 
     def setValveMinimumDeenergizeTime(self, var, label):
-        self.updateSetting(var, label, 7, Type=int)
+        self.canSend.controller_setValveMinimumDeenergizeTime(self.id, var, label)
 
     def setCountdownStart(self, var, label):
-        settingID = 1
-        if self.intTypeCheck(var, int, label, 32):
-            var = int(var.get())* 1000
-            binstr = bitstring.BitArray(int=int(var), length=32).bin
-            DATA = [VERIFICATIONID, self.id, settingID, int(binstr[0:8], 2), int(binstr[8:16], 2),
-                    int(binstr[16:24], 2), int(binstr[24:32], 2)]
-            self.canSend(NODEID, DATA)
+        self.canSend.controller_setCountdownStart(self.id, var, label)
 
     def Refresh(self):
         if self.isAPropTank:
@@ -1495,21 +1602,10 @@ except AttributeError:
 except ModuleNotFoundError:
     pass
 
-class CanSend:
-    def __init__(self, **busargs):
-        self.bus = can.interface.Bus(**busargs)
-
-    def __call__(self, ID, DATA):
-        print(DATA)
-        if CanStatus:
-            msg = can.Message(arbitration_id=ID,
-                            data=DATA, is_extended_id=False)
-            self.bus.send(msg)
-
 if CanStatus:
 
-    #busargs = dict(channel='virtual', bustype='virtual')
-    busargs = dict(channel='can0', bustype='socketcan')
+    busargs = dict(channel='virtual', bustype='virtual')
+    #busargs = dict(channel='can0', bustype='socketcan')
     
     canReceive = CanReceive(**busargs)
     canSend = CanSend(**busargs)
