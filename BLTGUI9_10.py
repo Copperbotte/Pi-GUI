@@ -1370,7 +1370,8 @@ Starts Code
 CanStatus = False
 try:
     import can  # /////////////////////////////////////////////////////////////////////////
-    from CanReceive import CanSend, CanReceive
+    #from CanReceive import CanSend, CanReceive
+    from canio_HRC import CanSend, CanReceive
     CanStatus = True
 
 except AttributeError:
