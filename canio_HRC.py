@@ -5,232 +5,7 @@ from bitarray import bitarray
 import time
 import struct
 from lint import docstring
-
-NODEID = 8
-VERIFICATIONID = 166
-SENSOR_MULTIPLIER = 100
-
-################################################################################
-############## HeraclitusRocketController / Config.h Definitions ###############
-################################################################################
-
-# Valves & Igniters
-NUM_VALVES   = 10
-NUM_IGNITERS = 2
-
-# Vehicle Commands
-ABORT        = 0
-VENT         = 1
-FIRE         = 2
-TANK_PRESS   = 3
-HIGH_PRESS   = 4
-STANDBY      = 5
-PASSIVE      = 6
-TEST         = 7
-
-# Valve & Igniter (HPO Commands)
-IGN1_OFF     = 8   # Igniter One
-IGN1_ON      = 9
-
-IGN2_OFF     = 10  # Igniter Two
-IGN2_ON      = 11
-
-HV_CLOSE     = 12  # High Vent valve
-HV_OPEN      = 13
-
-HP_CLOSE     = 14  # High Press valve
-HP_OPEN      = 15
-
-LDV_CLOSE    = 16  # Lox Dome Vent valve
-LDV_OPEN     = 17
-
-FDV_CLOSE    = 18  # Fuel Dome Vent valve
-FDV_OPEN     = 19
-
-LDR_CLOSE    = 20  # Lox Dome Reg valve
-LDR_OPEN     = 21
-
-FDR_CLOSE    = 22  # Fuel Dome Reg valve
-FDR_OPEN     = 23
-
-LV_CLOSE     = 24  # Lox Vent valve
-LV_OPEN      = 25
-
-FV_CLOSE     = 26  # Fuel Vent valve
-FV_OPEN      = 27
-
-LMV_CLOSE    = 28  # Lox Main valve
-LMV_OPEN     = 29
-
-FMV_CLOSE    = 30  # Fuel Main valve
-FMV_OPEN     = 31
-
-# Timing
-SET_IGNITION  = 32  # Set ignition time for both igniters.
-SET_LMV_OPEN  = 33  # Set LMV open time.
-SET_FMV_OPEN  = 34  # Set FMV open time. 
-SET_LMV_CLOSE = 35  # Set LMV close time.
-SET_FMV_CLOSE = 36  # Set FMV close time.
-
-GET_IGNITION  = 37  # Confirm ignition time for both igniters.
-GET_LMV_OPEN  = 38  # Confirm LMV open time.
-GET_FMV_OPEN  = 39  # Confirm FMV open time.
-GET_LMV_CLOSE = 40  # Confirm LMV close time.
-GET_FMV_CLOSE = 41  # Confirm FMV close time.
-
-# Ping
-PING_PI_ROCKET = 42  # *Important*: Pi Box sends a ping to the rocket. 
-PING_ROCKET_PI = 43  # Rocket sends a ping to the Pi Box.
-
-# PT Configuration
-ZERO_PTS = 44  # Zero the pressure transducers.
-
-# State Reports
-SR_PROP   = 127
-SR_ENGINE = 128
-
-# Sensor Reports
-SENS_1_4_PROP     = 129 # Lox High,   Fuel High, Lox Dome,   Fuel Dome
-SENS_5_8_PROP     = 130 # Lox Tank1,  Lox Tank2, Fuel Tank1, Fuel Tank2
-SENS_9_12_ENGINE  = 131 # Pneumatics, Lox Inlet, Fuel Inlet, Fuel Injector
-SENS_13_16_ENGINE = 132 # Chamber1,   Chamber2,  UNUSED,     UNUSED
-
-# Data Direction Inputs 
-INPUT  = 0
-OUTPUT = 1
-
-# Igniter Digital Pin Designations and IDs | ALARA LOWER 
-
-IGN1_ID      = 10  # Igniter A / ENG-IGNA / ALARA Lower
-IGN1_PIN_DIG = 83  #ALARA: DIG5 | Teensy 3.6 MCU Pin: PTC16
-IGN1_PIN_PWM = 2 
-
-
-IGN2_ID      = 11  # Igniter B / ENG-IGNB
-IGN2_PIN_DIG = 81  # ALARA: DIG5 | Teensy 3.6 MCU Pin: PTC14
-IGN2_PIN_PWM = 10  # In Dan's Code they are both 2?  
-      
-
-# Valve Digital Pin Designations and IDs | ALARA LOWER 
-
-HP_ID        = 20  # High Press valve / SV HI PRES  
-HP_PIN_DIG   = 87  # ALARA: DIG1 | Teensy 3.6 MCU Pin: PTD10
-HP_PIN_PWM   = 5
-
-HV_ID        = 21  # High Vent valve / SV HI PRES V 
-HV_PIN_DIG   = 86  # ALARA: DIG2 | Teensy 3.6 MCU Pin: PTC19
-HV_PIN_PWM   = 6
-
-FMV_ID       = 22  # Fuel Main valve / SV MV FUEL 
-FMV_PIN_DIG  = 85  # ALARA: DIG3 | Teensy 3.6 MCU Pin: PTC18
-FMV_PIN_PWM  = 8  
-
-LMV_ID       = 23  # Lox Main valve / SV MV LOX
-LMV_PIN_DIG  = 84  # ALARA: DIG4 | Teensy 3.6 MCU Pin: PTC17
-LMV_PIN_PWM  = 7
-
-# Valve Digital Pin Designations and IDs | ALARA UPPER 
-
-LV_ID        = 24  # Lox Vent valve / SV LOX V
-LV_PIN_DIG   = 87  # ALARA: DIG1 | Teensy 3.6 MCU Pin: PTD10
-LV_PIN_PWM   = 5
-
-LDV_ID       = 25  # Lox Dome Vent valve / SV DREG L
-LDV_PIN_DIG  = 85  # ALARA: DIG3 | Teensy 3.6 MCU Pin: PTC18
-LDV_PIN_PWM  = 8
-
-LDR_ID       = 26  # Lox Dome Reg valve / SV DREG LV
-LDR_PIN_DIG  = 84  # ALARA: DIG4 | Teensy 3.6 MCU Pin: PTC17
-LDR_PIN_PWM  = 7
-
-FV_ID        = 27  # Fuel Vent valve / SV FUEL V 
-FV_PIN_DIG   = 83  # ALARA: DIG5 | Teensy 3.6 MCU Pin: PTC16
-FV_PIN_PWM   = 2
-
-FDV_ID       = 28  # Fuel Dome Vent valve / SV DREG F V 
-FDV_PIN_DIG  = 81  # ALARA: DIG7 | Teensy 3.6 MCU Pin: PTC14
-FDV_PIN_PWM  = 10
-
-FDR_ID       = 29  # Fuel Dome Reg valve /  SV DREG F
-FDR_PIN_DIG  = 80  # ALARA: DIG8 | Teensy 3.6 MCU Pin: PTC13
-FDR_PIN_PWM  = 9
-
-
-
-# Pressure Transducer Sesnor Pin Designations, IDs, and Calibration Values
-# (sensors are currently uncalibrated)
-
-#Upper Prop Node:
-PT_LOX_HIGH_ID         = (1<<0)  #00000000 00000001  Upper A22
-PT_LOX_HIGH_PIN        = "A22"
-PT_LOX_HIGH_CAL_M      = 1.0
-PT_LOX_HIGH_CAL_B      = 0.0
-
-PT_FUEL_HIGH_ID        = (1<<1)  #00000000 00000010  Upper A21
-PT_FUEL_HIGH_PIN       = "A21"
-PT_FUEL_HIGH_CAL_M     = 1.0
-PT_FUEL_HIGH_CAL_B     = 0.0
-
-PT_LOX_DOME_ID         = (1<<2)  #00000000 00000100  Upper  A3
-PT_LOX_DOME_PIN        = "A3"
-PT_LOX_DOME_CAL_M      = 1.0
-PT_LOX_DOME_CAL_B      = 0.0
-
-PT_FUEL_DOME_ID        = (1<<3)  #00000000 00001000  Upper  A2
-PT_FUEL_DOME_PIN       = "A2"
-PT_FUEL_DOME_CAL_M     = 1.0
-PT_FUEL_DOME_CAL_B     = 0.0
-
-PT_LOX_TANK_1_ID       = (1<<4)  #00000000 00010000  Upper A14
-PT_LOX_TANK_1_PIN      = "A14"
-PT_LOX_TANK_1_CAL_M    = 1.0
-PT_LOX_TANK_1_CAL_B    = 0.0
-
-PT_LOX_TANK_2_ID       = (1<<5)  #00000000 00100000  Upper A11
-PT_LOX_TANK_2_PIN      = "A11"
-PT_LOX_TANK_2_CAL_M    = 1.0
-PT_LOX_TANK_2_CAL_B    = 0.0
-
-PT_FUEL_TANK_1_ID      = (1<<6)  #00000000 01000000  Upper A15
-PT_FUEL_TANK_1_PIN     = "A15"
-PT_FUEL_TANK_1_CAL_M   = 1.0
-PT_FUEL_TANK_1_CAL_B   = 0.0
-
-PT_FUEL_TANK_2_ID      = (1<<7)  #00000000 10000000  Upper A10
-PT_FUEL_TANK_2_PIN     = "A10"
-PT_FUEL_TANK_2_CAL_M   = 1.0
-PT_FUEL_TANK_2_CAL_B   = 0.0
-
-#Lower Engine Node:
-PT_PNUEMATICS_ID       = (1<<8)  #00000001 00000000  Lower A15
-PT_PNUEMATICS_PIN      = "A15"
-PT_PNUEMATICS_CAL_M    = 1.0
-PT_PNUEMATICS_CAL_B    = 0.0
-
-PT_LOX_INLET_ID        = (1<<9)  #00000010 00000000  Lower A21
-PT_LOX_INLET_PIN       = "A21"
-PT_LOX_INLET_CAL_M     = 1.0
-PT_LOX_INLET_CAL_B     = 0.0
-
-PT_FUEL_INLET_ID       = (1<<10) #00000100 00000000  Lower A22
-PT_FUEL_INLET_PIN      = "A22"
-PT_FUEL_INLET_CAL_M    = 1.0
-PT_FUEL_INLET_CAL_B    = 0.0
-
-PT_FUEL_INJECTOR_ID    = (1<<11) #00001000 00000000  Lower A14
-PT_FUEL_INJECTOR_PIN   = "A14"
-PT_FUEL_INJECTOR_CAL_M = 1.0
-PT_FUEL_INJECTOR_CAL_B = 0.0
-
-PT_CHAMBER_1_ID        = (1<<12) #00010000 00000000  Lower A10
-PT_CHAMBER_1_PIN       = "A10"
-PT_CHAMBER_1_CAL_M     = 1.0
-PT_CHAMBER_1_CAL_B     = 0.0
-
-PT_CHAMBER_2_ID        = (1<<13) #00100000 00000000  Lower A11
-PT_CHAMBER_2_PIN       = "A11"
-PT_CHAMBER_2_CAL_M     = 1.0
-PT_CHAMBER_2_CAL_B     = 0.0
+import config_HRC as HRC
 
 ################################################################################
 ################################### Can Send ###################################
@@ -283,8 +58,8 @@ class CanSend:
         print("Hericlitus Rocket Controller CanSend instance created")
         self.bus = can.interface.Bus(**busargs)
 
-    def send(self, ID, DATA):
-        print(DATA)
+    def send(self, ID, DATA, prefix=""):
+        print(">>", prefix, ID, DATA)
         msg = can.Message(arbitration_id=ID, data=DATA, is_extended_id=False)
         self.bus.send(msg)
 
@@ -311,7 +86,7 @@ class CanSend:
     def set_timing(self, id, time_micros):
         binstr = bitstring.BitArray(int=time_micros, length=40).bin
         data = [binstr[i:i+8] for i in range(0, len(binstr), 8)]
-        self.send(id, data)
+        self.send(id, data, "Sent Timer Message:")
 
     @docstring("""
     # Sends a unary message.
@@ -320,7 +95,8 @@ class CanSend:
     # id: Command id -- Defined in Config.h
     """)
     def send_unary_message(self, id):
-        self.send(id, [])
+        self.send(id, [], "Sent Unary Message:")
+        
 
     ##############################
     ###### Vehicle Commands ######
@@ -330,49 +106,49 @@ class CanSend:
     # Sends the abort command.
     """)
     def abort(self):
-        self.send_unary_message(ABORT)
+        self.send_unary_message(HRC.ABORT)
 
     @docstring("""
     # Sends the vent command.
     """)
     def vent(self):
-        self.send_unary_message(VENT)
+        self.send_unary_message(HRC.VENT)
 
     @docstring("""
     # Sends the fire command.
     """)
     def fire(self):
-        self.send_unary_message(FIRE)
+        self.send_unary_message(HRC.FIRE)
 
     @docstring("""
     # Sends the tank pressurize command.
     """)
     def tank_press(self):
-        self.send_unary_message(TANK_PRESS)
+        self.send_unary_message(HRC.TANK_PRESS)
 
     @docstring("""
     # Sends the high press pressurize command.
     """)
     def high_press(self):
-        self.send_unary_message(HIGH_PRESS)
+        self.send_unary_message(HRC.HIGH_PRESS)
 
     @docstring("""
     # Sends the standby command.
     """)
     def standby(self):
-        self.send_unary_message(STANDBY)
+        self.send_unary_message(HRC.STANDBY)
 
     @docstring("""
     # Sends the passive command.
     """)
     def passive(self):
-        self.send_unary_message(PASSIVE)
+        self.send_unary_message(HRC.PASSIVE)
 
     @docstring("""
     # Sends the test command.
     """)
     def test(self):
-        self.send_unary_message(TEST)
+        self.send_unary_message(HRC.TEST)
 
     ##############################
     ##### Valves & Igniters ######
@@ -382,168 +158,168 @@ class CanSend:
     # Sets Igniter 1 to off.
     """)
     def ign1_off(self):
-        self.send_unary_message(IGN1_OFF)
+        self.send_unary_message(HRC.IGN1_OFF)
 
 
     @docstring("""
     # Sets Igniter 1 to on.
     """)
     def ign1_on(self):
-        self.send_unary_message(IGN1_ON)
+        self.send_unary_message(HRC.IGN1_ON)
 
 
     @docstring("""
     # Sets Igniter 2 to off.
     """)
     def ign2_off(self):
-        self.send_unary_message(IGN2_OFF)
+        self.send_unary_message(HRC.IGN2_OFF)
 
 
     @docstring("""
     # Sets Igniter 2 to on.
     """)
     def ign2_on(self):
-        self.send_unary_message(IGN2_ON)
+        self.send_unary_message(HRC.IGN2_ON)
 
 
     @docstring("""
     # Sets High Pressure Vent to close.
     """)
     def hv_close(self):
-        self.send_unary_message(HV_CLOSE)
+        self.send_unary_message(HRC.HV_CLOSE)
 
 
     @docstring("""
     # Sets High Pressure Vent open.
     """)
     def hv_open(self):
-        self.send_unary_message(HV_OPEN)
+        self.send_unary_message(HRC.HV_OPEN)
 
 
     @docstring("""
     # Sets High Pressure to close.
     """)
     def hp_close(self):
-        self.send_unary_message(HP_CLOSE)
+        self.send_unary_message(HRC.HP_CLOSE)
 
 
     @docstring("""
     # Sets High Pressure to open.
     """)
     def hp_open(self):
-        self.send_unary_message(HP_OPEN)
+        self.send_unary_message(HRC.HP_OPEN)
 
 
     @docstring("""
     # Sets Liquid Oxygen Dome Vent to close.
     """)
     def ldv_close(self):
-        self.send_unary_message(LDV_CLOSE)
+        self.send_unary_message(HRC.LDV_CLOSE)
 
 
     @docstring("""
     # Sets Liquid Oxygen Dome Vent to open.
     """)
     def ldv_open(self):
-        self.send_unary_message(LDV_OPEN)
+        self.send_unary_message(HRC.LDV_OPEN)
 
 
     @docstring("""
     # Sets Fuel Dome Vent to close.
     """)
     def fdv_close(self):
-        self.send_unary_message(FDV_CLOSE)
+        self.send_unary_message(HRC.FDV_CLOSE)
 
 
     @docstring("""
     # Sets Fuel Dome Vent to open.
     """)
     def fdv_open(self):
-        self.send_unary_message(FDV_OPEN)
+        self.send_unary_message(HRC.FDV_OPEN)
 
 
     @docstring("""
     # Sets Liquid Oxygen Dome Regulator to close.
     """)
     def ldr_close(self):
-        self.send_unary_message(LDR_CLOSE)
+        self.send_unary_message(HRC.LDR_CLOSE)
 
 
     @docstring("""
     # Sets Liquid Oxygen Dome Regulator to open.
     """)
     def ldr_open(self):
-        self.send_unary_message(LDR_OPEN)
+        self.send_unary_message(HRC.LDR_OPEN)
 
 
     @docstring("""
     # Sets Fuel Dome Regulator to close.
     """)
     def fdr_close(self):
-        self.send_unary_message(FDR_CLOSE)
+        self.send_unary_message(HRC.FDR_CLOSE)
 
 
     @docstring("""
     # Sets Fuel Dome Regulator to open.
     """)
     def fdr_open(self):
-        self.send_unary_message(FDR_OPEN)
+        self.send_unary_message(HRC.FDR_OPEN)
 
 
     @docstring("""
     # Sets Liquid Oxygen Vent to close.
     """)
     def lv_close(self):
-        self.send_unary_message(LV_CLOSE)
+        self.send_unary_message(HRC.LV_CLOSE)
 
 
     @docstring("""
     # Sets Liquid Oxygen Vent to open.
     """)
     def lv_open(self):
-        self.send_unary_message(LV_OPEN)
+        self.send_unary_message(HRC.LV_OPEN)
 
 
     @docstring("""
     # Sets Fuel Vent to close.
     """)
     def fv_close(self):
-        self.send_unary_message(FV_CLOSE)
+        self.send_unary_message(HRC.FV_CLOSE)
 
 
     @docstring("""
     # Sets Fuel Vent to open.
     """)
     def fv_open(self):
-        self.send_unary_message(FV_OPEN)
+        self.send_unary_message(HRC.FV_OPEN)
 
 
     @docstring("""
     # Sets Liquid Oxygen Main Valve to close.
     """)
     def lmv_close(self):
-        self.send_unary_message(LMV_CLOSE)
+        self.send_unary_message(HRC.LMV_CLOSE)
 
 
     @docstring("""
     # Sets Liquid Oxygen Main Valve to open.
     """)
     def lmv_open(self):
-        self.send_unary_message(LMV_OPEN)
+        self.send_unary_message(HRC.LMV_OPEN)
 
 
     @docstring("""
     # Sets Fuel Main Valve to close.
     """)
     def fmv_close(self):
-        self.send_unary_message(FMV_CLOSE)
+        self.send_unary_message(HRC.FMV_CLOSE)
 
 
     @docstring("""
     # Sets Fuel Main Valve to open.
     """)
     def fmv_open(self):
-        self.send_unary_message(FMV_OPEN)
+        self.send_unary_message(HRC.FMV_OPEN)
 
     ##############################
     ########### Timing ###########
@@ -556,7 +332,7 @@ class CanSend:
     # time_micros: unsigned 40 bit integer???, in microseconds from ???
     """)
     def set_ignition(self, time_micros):
-        self.set_timing(SET_IGNITION, time_micros)
+        self.set_timing(HRC.SET_IGNITION, time_micros)
 
     @docstring("""
     # Sets the opening time for the liquid oxygen main valve.
@@ -565,7 +341,7 @@ class CanSend:
     # time_micros: unsigned 40 bit integer???, in microseconds from ???
     """)
     def set_lmv_open(self, time_micros):
-        self.set_timing(SET_LMV_OPEN, time_micros)
+        self.set_timing(HRC.SET_LMV_OPEN, time_micros)
 
     @docstring("""
     # Sets the opening time for the fuel main valve.
@@ -574,7 +350,7 @@ class CanSend:
     # time_micros: unsigned 40 bit integer???, in microseconds from ???
     """)
     def set_fmv_open(self, time_micros):
-        self.set_timing(SET_FMV_OPEN, time_micros)
+        self.set_timing(HRC.SET_FMV_OPEN, time_micros)
 
     @docstring("""
     # Sets the closing time for the liquid oxygen main valve.
@@ -583,7 +359,7 @@ class CanSend:
     # time_micros: unsigned 40 bit integer???, in microseconds from ???
     """)
     def set_lmv_close(self, time_micros):
-        self.set_timing(SET_LMV_CLOSE, time_micros)
+        self.set_timing(HRC.SET_LMV_CLOSE, time_micros)
 
     @docstring("""
     # Sets the closing time for the fuel main valve.
@@ -592,7 +368,7 @@ class CanSend:
     # time_micros: unsigned 40 bit integer???, in microseconds from ???
     """)
     def set_fmv_close(self, time_micros):
-        self.set_timing(SET_FMV_CLOSE, time_micros)
+        self.set_timing(HRC.SET_FMV_CLOSE, time_micros)
 
     ##############################
     ####### Miscellaneous ########
@@ -602,72 +378,30 @@ class CanSend:
     # Pings the rocket.
     """)
     def ping(self):
-        self.send_unary_message(PING_PI_ROCKET)
+        self.send_unary_message(HRC.PING_PI_ROCKET)
 
     @docstring("""
     # Zeros the pressure transducers.
     """)
     def zero_pts(self):
-        self.send_unary_message(ZERO_PTS)
+        self.send_unary_message(HRC.ZERO_PTS)
 
 ################################################################################
 ################################# Can Receive ##################################
 ################################################################################
 
 class CanReceive:
-    
-    StateLUT = {
-        IGN1_ID : [ IGN1_OFF,  IGN1_ON],
-        IGN2_ID : [ IGN2_OFF,  IGN2_ON],
-        HP_ID   : [ HP_CLOSE,  HP_OPEN],
-        HV_ID   : [ HV_CLOSE,  HV_OPEN],
-        FMV_ID  : [FMV_CLOSE, FMV_OPEN],
-        LMV_ID  : [LMV_CLOSE, LMV_OPEN],
-        LV_ID   : [ LV_CLOSE,  LV_OPEN],
-        LDV_ID  : [LDV_CLOSE, LDV_OPEN],
-        LDR_ID  : [LDR_CLOSE, LDR_OPEN],
-        FV_ID   : [ FV_CLOSE,  FV_OPEN],
-        FDV_ID  : [FDV_CLOSE, FDV_OPEN],
-        FDR_ID  : [FDR_CLOSE, FDR_OPEN],
-    }
-
-    StateKeys = {
-        SR_ENGINE:[HP_ID,  HV_ID, FMV_ID, LMV_ID, IGN1_ID, IGN2_ID],
-        SR_PROP:  [LV_ID, LDV_ID, LDR_ID,  FV_ID,  FDV_ID,  FDR_ID]
-    }
-
-    SensorLUT = {
-        PT_LOX_HIGH_ID      : dict(pin=PT_LOX_HIGH_PIN,      m=PT_LOX_HIGH_CAL_M,      b=PT_LOX_HIGH_CAL_B),
-        PT_FUEL_HIGH_ID     : dict(pin=PT_FUEL_HIGH_PIN,     m=PT_FUEL_HIGH_CAL_M,     b=PT_FUEL_HIGH_CAL_B),
-        PT_LOX_DOME_ID      : dict(pin=PT_LOX_DOME_PIN,      m=PT_LOX_DOME_CAL_M,      b=PT_LOX_DOME_CAL_B),
-        PT_FUEL_DOME_ID     : dict(pin=PT_FUEL_DOME_PIN,     m=PT_FUEL_DOME_CAL_M,     b=PT_FUEL_DOME_CAL_B),
-        PT_LOX_TANK_1_ID    : dict(pin=PT_LOX_TANK_1_PIN,    m=PT_LOX_TANK_1_CAL_M,    b=PT_LOX_TANK_1_CAL_B),
-        PT_LOX_TANK_2_ID    : dict(pin=PT_LOX_TANK_2_PIN,    m=PT_LOX_TANK_2_CAL_M,    b=PT_LOX_TANK_2_CAL_B),
-        PT_FUEL_TANK_1_ID   : dict(pin=PT_FUEL_TANK_1_PIN,   m=PT_FUEL_TANK_1_CAL_M,   b=PT_FUEL_TANK_1_CAL_B),
-        PT_FUEL_TANK_2_ID   : dict(pin=PT_FUEL_TANK_2_PIN,   m=PT_FUEL_TANK_2_CAL_M,   b=PT_FUEL_TANK_2_CAL_B),
-        PT_PNUEMATICS_ID    : dict(pin=PT_PNUEMATICS_PIN,    m=PT_PNUEMATICS_CAL_M,    b=PT_PNUEMATICS_CAL_B),
-        PT_LOX_INLET_ID     : dict(pin=PT_LOX_INLET_PIN,     m=PT_LOX_INLET_CAL_M,     b=PT_LOX_INLET_CAL_B),
-        PT_FUEL_INLET_ID    : dict(pin=PT_FUEL_INLET_PIN,    m=PT_FUEL_INLET_CAL_M,    b=PT_FUEL_INLET_CAL_B),
-        PT_FUEL_INJECTOR_ID : dict(pin=PT_FUEL_INJECTOR_PIN, m=PT_FUEL_INJECTOR_CAL_M, b=PT_FUEL_INJECTOR_CAL_B),
-        PT_CHAMBER_1_ID     : dict(pin=PT_CHAMBER_1_PIN,     m=PT_CHAMBER_1_CAL_M,     b=PT_CHAMBER_1_CAL_B),
-        PT_CHAMBER_2_ID     : dict(pin=PT_CHAMBER_2_PIN,     m=PT_CHAMBER_2_CAL_M,     b=PT_CHAMBER_2_CAL_B),
-                         -1 : dict(pin=-1,                   m=1,                      b=0), # Padding
-    }
-
-    SensorKeys = {
-        SENS_1_4_PROP:     [PT_LOX_HIGH_ID,   PT_FUEL_HIGH_ID,  PT_LOX_DOME_ID,    PT_FUEL_DOME_ID],
-        SENS_5_8_PROP:     [PT_LOX_TANK_1_ID, PT_LOX_TANK_2_ID, PT_FUEL_TANK_1_ID, PT_FUEL_TANK_2_ID],
-        SENS_9_12_ENGINE:  [PT_PNUEMATICS_ID, PT_LOX_INLET_ID,  PT_FUEL_INLET_ID,  PT_FUEL_INJECTOR_ID],
-        SENS_13_16_ENGINE: [PT_CHAMBER_1_ID,  PT_CHAMBER_2_ID,  -1,                -1]
-    }
 
     def __init__(self, **busargs):
         print("Hericlitus Rocket Controller CanReceive instance created")
         self.bus = can.interface.Bus(**busargs)
 
-        self.States = {k:v[0] for k,v in self.StateLUT.items()}
-        self.Sensor_Raw = {k:0 for k,v in self.SensorLUT.items()}
-        self.Sensor_Val = {k:v['b'] for k,v in self.SensorLUT.items()}
+        self.States = {k:v['states'][0] for k,v in HRC.ToggleLUT.items()}
+        self.Sensor_Raw = {k:0 for k,v in HRC.SensorLUT.items()}
+        self.Sensor_Val = {k:v['b'] for k,v in HRC.SensorLUT.items()}
+
+        self.rocketState = {k:HRC.PASSIVE for k in HRC.ToggleKeys.keys()}
+        self.time_micros = {k:-1 for k in HRC.ToggleKeys.keys()}
 
     @docstring("""
     Runs the CanReceive thread.
@@ -712,12 +446,21 @@ class CanReceive:
     """)
     def translateMessage(self, msg_id, data_list_hex, data_bin):
 
-        if msg_id in self.StateKeys:
+        if msg_id in HRC.ToggleKeys:
             return self.recvStateReport(msg_id, data_list_hex, data_bin)
         
-        if msg_id in self.SensorKeys:
+        if msg_id in HRC.SensorKeys:
             return self.recvSensorData(msg_id, data_list_hex, data_bin)
         
+        # DEBUG
+        #for state_id, lut in HRC.ToggleLUT.items():
+        #    if msg_id in lut['states']:
+        #        time.sleep(1)
+        #        s = self.States[state_id]
+        #        self.States[state_id] = msg_id
+        #        raise KeyError("Recieved msg with id: %s, altering %s"%(msg_id, s))
+        #        return 
+
         raise KeyError("Unknown message recieved with id: %d, and data [%s]"%(msg_id, str(data_list_hex)))
 
     @docstring("""
@@ -725,14 +468,14 @@ class CanReceive:
     """)
     def recvStateReport(self, msg_id, data_list_hex, data_bin):
 
-        self.time_micros = int('0'+data_bin[:32], base=2)
-        self.rocketState = int('0'+data_list_hex[4], base=16)
+        self.time_micros[msg_id] = int('0'+data_bin[:32], base=2)
+        self.rocketState[msg_id] = int('0'+data_list_hex[4], base=16)
 
         state_bits = '{0:06b}'.format(int('0'+data_list_hex[5], base=16))
         states = list(map(lambda b: int('0'+b, base=2), state_bits))
 
-        for key, state in zip(self.StateKeys[msg_id], states):
-            self.States[key] = self.StateLUT[key][state]
+        for key, state in zip(HRC.ToggleKeys[msg_id], states):
+            self.States[key] = HRC.ToggleLUT[key]['states'][state]
 
     @docstring("""
     # Sensor data
@@ -741,7 +484,10 @@ class CanReceive:
 
         vals = [int('0'+data_bin[i:i+16], base=2) for i in range(0, 64, 16)]
 
-        for key, val in zip(self.SensorKeys[msg_id], vals):
-            v = val / SENSOR_MULTIPLIER
+        for key, val in zip(HRC.SensorKeys[msg_id], vals):
+            if key not in HRC.SensorLUT:
+                continue
+            
+            v = val / HRC.SENSOR_MULTIPLIER
             self.Sensor_Raw[key] = v
-            self.Sensor_Val[key] = self.SensorLUT[key]['b'] + self.SensorLUT[key]['m'] * v
+            self.Sensor_Val[key] = HRC.SensorLUT[key]['b'] + HRC.SensorLUT[key]['m'] * v

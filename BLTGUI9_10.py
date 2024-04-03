@@ -14,6 +14,7 @@ from matplotlib.backends.backend_tkagg import (
 )
 from matplotlib import style
 import numpy as np
+import config_HRC as HRC
 
 style.use("dark_background")
 
@@ -109,45 +110,45 @@ class ImageCache:
 
 class Main:
     # Data needed to set up the Valve, Sensors, States
-    # Name, VBuffer Index, Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
+    # State LUT Key, VBuffer Index, color
     valves = [
-        ['HV',    4, 16, 2, 34, 35, yellow, 122, 2], 
-        ['HP',    3, 17, 1, 32, 33, yellow, 121, 2], 
-        ['LDR',  11, 19, 3, 38, 39, blue,   133, 3], 
-        ['FDR',  13, 22, 7, 44, 45, red,    137, 3], 
-        ['LDV',   9, 20, 4, 40, 41, blue,   134, 3], 
-        ['FDV',  15, 23, 8, 46, 47, red,    138, 3], 
-        ['LV',   16, 18, 1, 36, 37, blue,   131, 3], 
-        ['FV',   19, 21, 5, 42, 43, red,    135, 3], 
-        ['LMV',  26, 24, 4, 48, 49, blue,   124, 2], 
-        ['FMV',  29, 25, 3, 50, 51, red,    123, 2], 
-        ['IGN1', 34, 26, 5, 52, 53, green,  125, 2], 
-        ['IGN2', 35, 27, 7, 54, 55, green,  127, 2]  
+        [HRC.HV_ID,    4, yellow],
+        [HRC.HP_ID,    3, yellow],
+        [HRC.LDR_ID,  11, blue  ],
+        [HRC.FDR_ID,  13, red   ],
+        [HRC.LDV_ID,   9, blue  ],
+        [HRC.FDV_ID,  15, red   ],
+        [HRC.LV_ID,   16, blue  ],
+        [HRC.FV_ID,   19, red   ],
+        [HRC.LMV_ID,  26, blue  ],
+        [HRC.FMV_ID,  29, red   ],
+        [HRC.IGN1_ID, 34, green ],
+        [HRC.IGN2_ID, 35, green ]
     ]
     # [ 
-    # [ Sensor Name, Main Grid Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID,
-    # labelColor]
+    # Sensor LUT Key, Grid Key, Grid Position, Box Position, Box Adj, Color
     sensors = [
-        ["High\nPress 1",    "HiPr",   0,   0, 0, 1/3, 70, 81, yellow],#, 1, 1],
-        ["High\nPress 2",    "HiPr",   1,   0, 0, 1/3, 72, 81, yellow],#, 1, 1],
-        ["Fuel\nTank 1",     "Fuel",   0,   0, 0, 1/3, 62, 81, red   ],#, 0.0258, -161.04],
-        ["Lox Dome\nReg",    "Loxy",   0,   1, 0, 1/3, 76, 81, blue  ],#, 0.0258, -161.04],
-        ["Fuel Dome\nReg",   "Fuel",   0,   1, 0, 1/3, 74, 81, red   ],#, 0.0258, -161.04],
-        ["Lox\nTank 1",      "Loxy",   1,   0, 0, 1/3, 66, 81, blue  ],#, 1, 1],
-        ["Fuel\nTank 2",     "Fuel",   1,   0, 0, 1/3, 64, 81, red   ],#, 0.0293, -190.04],
-        ["Lox\nTank 2",      "Loxy",   0,   0, 0, 1/3, 68, 81, blue  ],#, 1,1],
-        ["Fuel\nProp Inlet", "Fuel",   1,   1, 0, 1/3, 58, 81, red   ],#, 1, 1],
-        ["Lox\nProp Inlet",  "Loxy",   1,   1, 0, 1/3, 60, 81, blue  ],#, 1, 1],
-        ["Fuel\nInjector",   "Fuel", 1/2,   2, 0, 1/3, 54, 81, red   ],#, 1, 1],
-        ["LC1",              "Yeet",   0,   1, 0, 1/3, 37, 37, green ],#, 1, 1],
-        ["Chamber 1",        "Yeet",   0,   0, 0, 1/3, 50, 51, green ],
-        ["LC2",              "Yeet",   1,   1, 0, 1/3, 43, 43, green ],#, 1, 1],
-        ["Chamber 2",        "Yeet",   1,   0, 0, 1/3, 52, 81, green ],
-        ["LC3",              "Yeet", 1/2, 3/2, 0, 1/3, 49, 49, green ],#, 1, 1],
-        ["MV\nPneumatic",    "Aero",   0,   0, 0, 1/3, 56, 81, purple],#, 1, 1],
+        [HRC.PT_LOX_HIGH_ID,      "HiPr", (  0,   0), (1, 0), (0, 1/3), yellow],
+        [HRC.PT_FUEL_HIGH_ID,     "HiPr", (  1,   0), (0, 0), (0, 1/3), yellow],
 
-        #["Chamber 2", .55, 0.65, 0.065, 0, 20, 81, green],
+        [HRC.PT_FUEL_TANK_1_ID,   "Fuel", (  0,   0), (0, 1), (0, 1/3), red   ],
+        [HRC.PT_FUEL_DOME_ID,     "Fuel", (  0,   1), (0, 2), (0, 1/3), red   ],
+        [HRC.PT_FUEL_TANK_2_ID,   "Fuel", (  1,   0), (0, 3), (0, 1/3), red   ],
+        [HRC.PT_FUEL_INLET_ID,    "Fuel", (  1,   1), (0, 4), (0, 1/3), red   ],
+        [HRC.PT_FUEL_INJECTOR_ID, "Fuel", (1/2,   2), (0, 5), (0, 1/3), red   ],
 
+        [HRC.PT_LOX_DOME_ID,      "Loxy", (  0,   1), (1, 1), (0, 1/3), blue  ],
+        [HRC.PT_LOX_TANK_1_ID,    "Loxy", (  1,   0), (1, 2), (0, 1/3), blue  ],
+        [HRC.PT_LOX_TANK_2_ID,    "Loxy", (  0,   0), (1, 3), (0, 1/3), blue  ],
+        [HRC.PT_LOX_INLET_ID,     "Loxy", (  1,   1), (1, 4), (0, 1/3), blue  ],
+        
+        [HRC.PT_CHAMBER_1_ID,     "Yeet", (  0,   0), (0, 6), (0, 1/3), green ],
+        [HRC.PT_CHAMBER_2_ID,     "Yeet", (  1,   0), (0, 7), (0, 1/3), green ],
+        [HRC.PT_PNUEMATICS_ID,    "Aero", (  0,   0), (0, 8), (0, 1/3), purple],
+
+       #[HRC.PT_LOAD_CELL_1_ID,   "Yeet", (  0,   1), (1, 5), (0, 1/3), green ],
+       #[HRC.PT_LOAD_CELL_2_ID,   "Yeet", (  1,   1), (1, 6), (0, 1/3), green ],
+       #[HRC.PT_LOAD_CELL_3_ID,   "Yeet", (1/2, 3/2), (1, 7), (0, 1/3), green ],
     ]
     # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
     States = [
@@ -170,9 +171,9 @@ class Main:
         #["Tank Controller HiPress", 2, False, yellow],
         #["Tank Controller Lox",     3, True,  blue ],  # Unused features
         #["Tank Controller Fuel",    4, True,  red  ],
-        ["Engine Controller 1",      5, False, black],
-        ["Auto Sequence",            1, False, black],
-        ["Node Controller",          0, False, black],
+        #["Engine Controller 1",      5, False, black],
+        ##["Auto Sequence",            1, False, black],
+        ##["Node Controller",          0, False, black],
     ]
 
     # System starts off in a passive state
@@ -381,8 +382,8 @@ class Main:
             for controller in self.controllerList:
                 controller.Refresh()
 
-            self.autosequence_str = "T  " + str(self.canReceive.AutosequenceTime) + " s"
-            self.autoseqence.config(text=self.autosequence_str)
+            #self.autosequence_str = "T  " + str(self.canReceive.AutosequenceTime) + " s"
+            #self.autoseqence.config(text=self.autosequence_str)
             self.time.config(text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
             #self.nodeState.config(text=self.canReceive.NodeStatus)  # can_receive.node_dict_list[self.name]["state"]))
 
@@ -394,8 +395,10 @@ class Main:
 
             self.sensorList[1].ReadingLabel.after(GRAPHDATAREFRESHRATE, self.Refresh)
             
-        self.EngineNodeState.config(text = "Engine Node State: " + self.canReceive.NodeStatusRenegadeEngine)
-        self.PropNodeState.config(text = "Prop Node State: " + self.canReceive.NodeStatusRenegadeProp)
+        #self.EngineNodeState.config(text = "Engine Node State: " + self.canReceive.NodeStatusRenegadeEngine)
+        #self.PropNodeState.config(text = "Prop Node State: " + self.canReceive.NodeStatusRenegadeProp)
+        self.EngineNodeState.config(text="Engine Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_ENGINE]])
+        self.PropNodeState.config(  text="Prop Node State: "   + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
 
     def StateReset(self):
         Main.CurrState = "Passive"
@@ -899,23 +902,22 @@ class Sensors:
     numOfSensors = 0
 
     def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs, boxSensorGrid, dictBoxGridsMain):
-        # [ Sensor Name, Main Grid Name, relx ,rely , Reading Xcor Offest , Reading Ycor Offest,  Raw Sensor ID, Converted Sensor ID, labelColor]
-        #"High\nPress 1",    0.475, 0.05,  0.0,   0.05, 70, 81, yellow],#, 1, 1],
+        # Sensor LUT Key, Grid Key, Grid Position, Box Position, Box Adj, Color
+        # [HRC.PT_LOX_HIGH_ID,      "HiPr", (  0,   0), (1, 0), (0, 1/3), yellow],
 
-        self.name, self.mainGrid, self.relx, self.rely, self.xoff, self.yoff, self.idRaw, self.idConv, self.color = args
+        self.id, self.grid, self.xy0, self.xy1, self.xyoff, self.color = args
 
         self.canReceive = canReceive
         self.canSend = canSend
         self.parent = parent
         self.SecondScreen = SecondScreen
 
-        self.idConv = self.idRaw +1
-        self.idConvEma = self.idConv + 256
-        self.idFake = self.idRaw + 100
-
         self.sensorData = [0] * 100
         self.GraphStatus = [IntVar() for g in graphs]
         self.index = 0
+
+        self.name = HRC.SensorLUT[self.id]['name']
+        self.xy0, self.xy1, self.xyoff = tuple(map(np.array, [self.xy0, self.xy1, self.xyoff]))
 
         # self.dataList = []
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
@@ -925,17 +927,17 @@ class Sensors:
 
 
         ### 1st Display
-        pt = np.array([self.relx, self.rely])
+        pt = np.array(self.xy0)
         adj = TransformBox(pt, (1/2,0), (0,1/2))
-        tf = dictBoxGridsMain[self.mainGrid] * adj
+        tf = dictBoxGridsMain[self.grid] * adj
         
         # self.label corresponds with the main screen box labels, as their titles.
         self.label = Label(parent, text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label.place(**tf.asAbsArgs((-self.xoff, -self.yoff)))
+        self.label.place(**tf.asAbsArgs(-self.xyoff))
         
         # self.ReadingLabel is the corresponding value for this box.
         self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
-        self.ReadingLabel.place(**tf.asAbsArgs((self.xoff, self.yoff)))
+        self.ReadingLabel.place(**tf.asAbsArgs(self.xyoff))
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -944,7 +946,8 @@ class Sensors:
 
         
         ### 2nd Display
-        pt = np.array([Sensors.numOfSensors % 2, Sensors.numOfSensors // 2])
+        #pt = np.array([Sensors.numOfSensors % 2, Sensors.numOfSensors // 2])
+        pt = np.array(self.xy1)
         adj = TransformBox(pt, (1/5,0), (0,1))
         tf = boxSensorGrid * adj
         
@@ -974,7 +977,7 @@ class Sensors:
     def Refresh(self, LabelRefresh):
         value = random.randint(1, 100)
         if CanStatus:
-            value = self.canReceive.Sensors[self.idConv]
+            value = self.canReceive.Sensor_Val[self.id]
         self.sensorData = self.sensorData[1:] + self.sensorData[:1]
         self.sensorData[-1] = value
         self.index += 1
@@ -999,16 +1002,19 @@ class Sensors:
 
 class Valves:
     numOfValves = 0
+    gui_state_offset = 4096
+
+    def imgFromState(self):
+        status = self.StatusStates[self.status] 
+        enable = self.EnableStates[self.enable]
+        select = '-'.join([self.photo_name, status, enable])
+        return self.imageCache("Valve Buttons/%s.png"%select, resize=(72,72))
 
     def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid, boxWireGrid, Vertex_Buffer, imageCache):
-        # Name, VBuffer Index, Object ID, HP Channel, Command OFF, Command ON, sensorID, nodeID
-        #['HV',    4, 16, 2, 34, 35, yellow, 122, 2], 
+        # State LUT Key, VBuffer Index, color
+        # [HRC.HV_ID,    4, yellow],
 
-        name, index, obj_id, hp_channel, comm_off, comm_on, color, sensorID, nodeID = args
-        self.name, self.index, self.id = name, index, obj_id
-        
-        self.HPChannel, self.commandOFF, self.commandON = hp_channel, comm_off, comm_on
-        self.color, self.sensorID, self.nodeID = color, sensorID, nodeID
+        self.id, self.index, self.color = args
 
         self.canReceive = canReceive
         self.canSend = canSend
@@ -1016,7 +1022,8 @@ class Valves:
         self.parent = parent
         self.SecondScreen = SecondScreen
         self.state = False
-        self.photo_name = name
+        self.nick = HRC.ToggleLUT[self.id]['nick']
+        self.photo_name = self.nick.replace(' ','')
         self.status = 69  # Keeps track of valve actuation state
 
         self.commandID = 1
@@ -1026,12 +1033,22 @@ class Valves:
         placeargs = dict(anchor="nw") # dict(anchor="center")
         bg = black#purple if self.numOfSensors == 0 else black
         
-        if "IGN" in self.photo_name:
-            self.photo = "Valve Buttons/" + self.name + "-Off-EnableOn.png"
-        else:
-            self.photo = "Valve Buttons/" + self.name + "-Closed-EnableOn.png"
+        # Precache valve photos
+        # LP and FP do not have stale states.
+        # Do those valves still exist?
+        lut = HRC.ToggleLUT[self.id]
+        self.StatusStates = {k:v for k,v in zip(lut['states'], lut['statestr'])}
+        self.StatusStates[lut['states'][0]+self.gui_state_offset] = "FireCommanded"
+        self.StatusStates[lut['states'][1]+self.gui_state_offset] = "Stale"
+        self.EnableStates = {i:e for i,e in enumerate(["EnableOff", "EnableOn", "EnableStale"])}
 
-        self.photo = self.imageCache(self.photo, resize=(72,72))
+        #for status in self.StatusStates:
+        #    for enable in self.EnableStates:
+        #        self.status, self.enable = status, enable
+        #        self.imgFromState()
+
+        self.status, self.enable = max(self.StatusStates), 2
+        self.photo = self.imgFromState()
 
         # Displays a button on a vertex in the propline diagram.
         self.Button = Button(parent, font=("Verdana", 10), fg=red, bg=bg)
@@ -1048,7 +1065,7 @@ class Valves:
         pt1 = tf.asAbsArgs(( 1,-1))
         pt2 = tf.asAbsArgs(( 1, 1))
 
-        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
+        self.label2 = Label(SecondScreen, text=self.nick, font=aFont, fg=self.color, bg=bg)
         self.label2.place(**pt0)
         self.StatusLabel2 = Label(SecondScreen, text="N/A Status", font=("Verdana", 9), fg=orange, bg=bg)
         self.StatusLabel2.place(**pt1)
@@ -1057,16 +1074,44 @@ class Valves:
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
-        SecondScreen.create_line(*tf(pts).tolist(), fill=color, width=1, capstyle='projecting', joinstyle='miter')
+        SecondScreen.create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
         
         Valves.numOfValves += 1
 
     def ValveActuation(self, event):
         # User is only allowed to actuate valves if in Test mode
         if Main.CurrState != "Test" and Main.CurrState != "Override":
-            return 0
-        print(self.name, self.status)
-        self.canSend.valve_valveActuation(self.commandID, self.state, self.commandOFF, self.commandON)
+            return
+        
+        if self.gui_state_offset < self.status:
+            return
+
+        # Request to toggle state
+        fptr = {
+            HRC.IGN1_ID: [ self.canSend.ign1_off,  self.canSend.ign1_on],
+            HRC.IGN2_ID: [ self.canSend.ign2_off,  self.canSend.ign2_on],
+              HRC.HP_ID: [ self.canSend.hp_close,  self.canSend.hp_open],
+              HRC.HV_ID: [ self.canSend.hv_close,  self.canSend.hv_open],
+             HRC.FMV_ID: [self.canSend.fmv_close, self.canSend.fmv_open],
+             HRC.LMV_ID: [self.canSend.lmv_close, self.canSend.lmv_open],
+              HRC.LV_ID: [ self.canSend.lv_close,  self.canSend.lv_open],
+             HRC.LDV_ID: [self.canSend.ldv_close, self.canSend.ldv_open],
+             HRC.LDR_ID: [self.canSend.ldr_close, self.canSend.ldr_open],
+              HRC.FV_ID: [ self.canSend.fv_close,  self.canSend.fv_open],
+             HRC.FDV_ID: [self.canSend.fdv_close, self.canSend.fdv_open],
+             HRC.FDR_ID: [self.canSend.fdr_close, self.canSend.fdr_open],
+        }
+
+        # Reverses the state-function mapping
+        states = HRC.ToggleLUT[self.id]['states']
+        smap = {k:v for k,v in zip(states, reversed(states))}
+        target = smap[self.status]
+        self.enable = states.index(target)
+
+        print(self.nick, self.status, self.StatusStates[self.status], "Calling:", fptr[self.id][self.enable].__name__)
+        fptr[self.id][self.enable]()
+
+        self.refresh_valve()
 
     def resetAll(self, var, label):
         self.canSend.valve_resetAll(self.id)
@@ -1094,31 +1139,44 @@ class Valves:
         # if self.id in can_receive.node_state and self.status is not can_receive.node_state[self.id]:
         #     self.status = can_receive.node_state[self.id]
         if CanStatus:
-            if self.nodeID == 3:
-                self.status = self.canReceive.ValvesRenegadeProp[self.HPChannel]
-            if self.nodeID == 2:
-                self.status = self.canReceive.ValvesRenegadeEngine[self.HPChannel]
-            self.VoltageLabel2.config(text = self.canReceive.Sensors[self.sensorID])
+            #if self.nodeID == 3:
+            #    self.status = self.canReceive.ValvesRenegadeProp[self.HPChannel]
+            #if self.nodeID == 2:
+            #    self.status = self.canReceive.ValvesRenegadeEngine[self.HPChannel]
+            self.status = self.canReceive.States[self.id]
+            #self.VoltageLabel2.config(text = self.canReceive.Sensors[self.sensorID])
+            self.VoltageLabel2.config(text='N/A Volts')
             
+            self.StatusLabel2.config(text=self.StatusStates[self.status])
+            self.photo = self.imgFromState()
+            self.Button.config(image=self.photo)
+
+            """
             if self.status == 0:  # Closed
-                self.photo_name = "Valve Buttons/" + self.name + "-Closed-EnableStale.png"
+                src = "Valve Buttons/" + self.photo_name + "-Closed-EnableStale.png"
                 self.StatusLabel2.config(text  = "Closed")
                 self.state = False
             elif self.status == 1:  # Open
-                self.photo_name = "Valve Buttons/" + self.name + "-Open-EnableStale.png"
+                src = "Valve Buttons/" + self.photo_name + "-Open-EnableStale.png"
                 self.StatusLabel2.config(text  = "Open`")
                 self.state = True
             elif self.status == 2:
-                self.photo_name = "Valve Buttons/" + self.name + "-FireCommanded-EnableStale.png"
+                src = "Valve Buttons/" + self.photo_name + "-FireCommanded-EnableStale.png"
             #             elif can_receive.currRefTime - can_receive.node_state_time[self.id] >= can_receive.staleTimeThreshold:
             #                 self.photo_name = "Valve Buttons/" + self.name + "-Stale-EnableStale.png"
-            if not exists(self.photo_name):
+            else:
+                if "IGN" in self.photo_name:
+                    src = "Valve Buttons/" + self.photo_name + "-Off-EnableOn.png"
+                else:
+                    src = "Valve Buttons/" + self.photo_name + "-Closed-EnableOn.png"
+            if not exists(src):
                 pass
                 #print(self.photo_name + " Does not exist. Status is " + str(self.status))
             else:
                 #print(self.photo_name, self.status)
-                self.photo = self.imageCache(self.photo_name, resize=(72,72))
+                self.photo = self.imageCache(src, resize=(72,72))
                 self.Button.config(image=self.photo)
+            """
 
 
 class States:
@@ -1209,7 +1267,7 @@ class States:
         else:
             self.button.config(fg='green')
             self.state = True
-        self.canSend.state_StateActuation(self.commandID, self.state, self.commandOFF, self.commandON)
+        #self.canSend.state_StateActuation(self.commandID, self.state, self.commandOFF, self.commandON)
 
 
 class Controller:
