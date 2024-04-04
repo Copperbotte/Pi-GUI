@@ -171,7 +171,7 @@ class Main:
         #["Tank Controller HiPress", 2, False, yellow],
         #["Tank Controller Lox",     3, True,  blue ],  # Unused features
         #["Tank Controller Fuel",    4, True,  red  ],
-        #["Engine Controller 1",      5, False, black],
+        ["Engine Controller 1",      5, False, black],
         ##["Auto Sequence",            1, False, black],
         ##["Node Controller",          0, False, black],
     ]
@@ -506,6 +506,11 @@ class Main:
         for di, tf, pt, dx, dy, width, color in buffer:
             tf = tf * TransformBox(pt, (dx,0), (0,dy))
             displays[di].create_line(*tf(pts).tolist(), fill=color, width=width, joinstyle='miter')
+
+        # DEBUG
+        # self.button = Button(self.parentMainScreen, text="Test state report", fg='red', bg='black', bd=5,
+        #                      command=lambda: self.canSend.TEST_send_state_reports(self.canReceive), font=20)
+        # self.button.place(x=1500, y=400, width=256, height=256)
 
     def ValveSettingsPopUp(self):
         """
@@ -953,6 +958,7 @@ class Sensors:
         
         pt0 = tf.asAbsArgs((-1, 0))
         pt1 = tf.asAbsArgs(( 1, 0))
+        #pt2 = tf.asAbsArgs(( 1, -1))
 
         # self.label2 is the sensor title in the SENSORS box.
         self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
@@ -964,6 +970,10 @@ class Sensors:
         # self.ConvReadingLabel2 is the corresponding value for this box.
         self.ConvReadingLabel2 = Label(SecondScreen, text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
         self.ConvReadingLabel2.place(**pt1)
+
+        # DEBUG
+        #self.ConvReadingLabel3 = Label(SecondScreen, text=str(HRC.PinLUT[HRC.SensorLUT[self.id]['pin']]), font=("Verdana", 9), fg='orange', bg=bg)
+        #self.ConvReadingLabel3.place(**pt2)
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -1335,7 +1345,7 @@ class Controller:
                 self.Times[name1].place(**tf.asAbsArgs((0, -1)))
 
                 name2 = name1 + '2'
-                text2 = str(self.canReceive.Controllers[self.id][cid]/1000)
+                text2 = "N/A"#str(self.canReceive.Controllers[self.id][cid]/1000)
                 self.Times[name2] = Label(self.parent2, text=text2, fg=orange, bg=black, font=("Verdana", 9))
                 self.Times[name2].place(**tf.asAbsArgs((0, 1)))
 
@@ -1398,25 +1408,26 @@ class Controller:
         self.canSend.controller_setCountdownStart(self.id, var, label)
 
     def Refresh(self):
-        if self.isAPropTank:
-            if True:#CanStatus:
-                self.labels['KpLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 2])
-                self.labels['KiLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 3])
-                self.labels['KdLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 4])
-                self.labels['EpLabel2'].config(             text=round(self.canReceive.Controllers[self.id][ 6]))
-                self.labels['EiLabel2'].config(             text=round(self.canReceive.Controllers[self.id][ 8]))
-                self.labels['EdLabel2'].config(             text=round(self.canReceive.Controllers[self.id][10]))
-                self.labels['PIDSUMLabel2'].config(         text=round(self.canReceive.Controllers[self.id][13]))
-                self.labels['TargetValueLabel2'].config(    text=      self.canReceive.Controllers[self.id][12])
-                self.labels['ThresholdLabel2'].config(      text=      self.canReceive.Controllers[self.id][ 5])
-                self.labels['EnergizeTime2'].config(        text=      self.canReceive.Controllers[self.id][14])
-                self.labels['DenergizeTime2'].config(       text=      self.canReceive.Controllers[self.id][15])
-                self.labels['VentFailSafePressure2'].config(text=      self.canReceive.Controllers[self.id][16])
-        elif "Engine" in self.name:
-            self.Times['LOXMVTime2'].config( text=self.canReceive.Controllers[self.id][3]/1000)
-            self.Times['FuelMVTime2'].config(text=self.canReceive.Controllers[self.id][2]/1000)
-            self.Times['IGN1Time2'].config(  text=self.canReceive.Controllers[self.id][4]/1000)
-            self.Times['IGN2Time2'].config(  text=self.canReceive.Controllers[self.id][5]/1000)
+        pass
+        # if self.isAPropTank:
+        #     if True:#CanStatus:
+        #         self.labels['KpLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 2])
+        #         self.labels['KiLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 3])
+        #         self.labels['KdLabel2'].config(             text=      self.canReceive.Controllers[self.id][ 4])
+        #         self.labels['EpLabel2'].config(             text=round(self.canReceive.Controllers[self.id][ 6]))
+        #         self.labels['EiLabel2'].config(             text=round(self.canReceive.Controllers[self.id][ 8]))
+        #         self.labels['EdLabel2'].config(             text=round(self.canReceive.Controllers[self.id][10]))
+        #         self.labels['PIDSUMLabel2'].config(         text=round(self.canReceive.Controllers[self.id][13]))
+        #         self.labels['TargetValueLabel2'].config(    text=      self.canReceive.Controllers[self.id][12])
+        #         self.labels['ThresholdLabel2'].config(      text=      self.canReceive.Controllers[self.id][ 5])
+        #         self.labels['EnergizeTime2'].config(        text=      self.canReceive.Controllers[self.id][14])
+        #         self.labels['DenergizeTime2'].config(       text=      self.canReceive.Controllers[self.id][15])
+        #         self.labels['VentFailSafePressure2'].config(text=      self.canReceive.Controllers[self.id][16])
+        # elif "Engine" in self.name:
+        #     self.Times['LOXMVTime2'].config( text=self.canReceive.Controllers[self.id][3]/1000)
+        #     self.Times['FuelMVTime2'].config(text=self.canReceive.Controllers[self.id][2]/1000)
+        #     self.Times['IGN1Time2'].config(  text=self.canReceive.Controllers[self.id][4]/1000)
+        #     self.Times['IGN2Time2'].config(  text=self.canReceive.Controllers[self.id][5]/1000)
 
 """
 Starts Code

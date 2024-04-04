@@ -57,6 +57,8 @@ class CanSend:
     def __init__(self, **busargs):
         print("Hericlitus Rocket Controller CanSend instance created")
         self.bus = can.interface.Bus(**busargs)
+        # DEBUG
+        # self._test = True
 
     def send(self, ID, DATA, prefix=""):
         print(">>", prefix, ID, DATA)
@@ -65,6 +67,28 @@ class CanSend:
 
     def __call__(self, ID, DATA):
         self.send(ID, DATA)
+
+    # def TEST_send_state_reports(self, canRecieve):
+    #     
+    #     if not self._test:
+    #         return 
+    #     self._test = False
+    #     
+    #     def split(hexes):
+    #         hexes = hexes.replace(' ','')
+    #         return [int('0'+hexes[h:h+2], base=16) for h in range(0, len(hexes), 2)]
+    #     
+    #     # State reports
+    #     self.send(HRC.SR_ENGINE, split("00 01 8B CD 07 25"), "sent STATE REPORT engine:")
+    #     self.send(HRC.SR_PROP,   split("00 01 8B CD 07 38"), "sent STATE REPORT prop:")
+    #     
+    #     # Sensor readings for all four groups
+    #     self.send(HRC.SENS_1_4_PROP,     split("1A 2C 19 C8 06 A4 06 40"), "sent SENSOR READING 01 - 04:")
+    #     self.send(HRC.SENS_5_8_PROP,     split("0C E4 19 64 0D AC 19 00"), "sent SENSOR READING 05 - 08:")
+    #     self.send(HRC.SENS_9_12_ENGINE,  split("0D 48 19 C8 1A 2C 0C E4"), "sent SENSOR READING 09 - 12:")
+    #     self.send(HRC.SENS_13_16_ENGINE, split("19 00 19 64 00 00 00 00"), "sent SENSOR READING 12 - 16:")
+    #     
+    #     print(canRecieve._stdio)
 
     ##############################
     ########## Generics ##########
@@ -402,6 +426,11 @@ class CanReceive:
 
         self.rocketState = {k:HRC.PASSIVE for k in HRC.ToggleKeys.keys()}
         self.time_micros = {k:-1 for k in HRC.ToggleKeys.keys()}
+        # DEBUG
+        # self._stdio = ""
+
+    # def Print(self, s):
+    #     self._stdio += s + '\n'
 
     @docstring("""
     Runs the CanReceive thread.
@@ -409,19 +438,18 @@ class CanReceive:
     def run(self):
         self.loop = True
 
-        for cycle in self.generator():
-            self.loop = cycle
+        while self.loop:
+            self.cycle()
 
     @docstring("""
-    Returns a generator that runs a single message loop cycle.
+    Runs a single message loop cycle.
     """)
-    def generator(self):
-        while self.loop:
-            msg_in = self.bus.recv(timeout=None)
-            try:
-                yield self.translateMessage(*self.parseMessage(msg_in))
-            except Exception as e:
-                print(e)
+    def cycle(self):
+        msg_in = self.bus.recv(timeout=None)
+        try:
+            self.translateMessage(*self.parseMessage(msg_in))
+        except Exception as e:
+            print(e)
             
 
     @docstring("""
@@ -437,7 +465,9 @@ class CanReceive:
         
         # Grabs the data in the msg
         data_list_hex = msg_in.data.hex()
-        data_bin = bitstring.BitArray(hex=data_list_hex).bin
+        data_list_hex = [data_list_hex[h:h+2] for h in range(0, len(data_list_hex), 2)]
+        #data_list_hex = list(reversed(data_list_hex))
+        data_bin = bitstring.BitArray(hex=''.join(data_list_hex)).bin
         
         return msg_id, data_list_hex, data_bin
     
@@ -445,6 +475,8 @@ class CanReceive:
     # Passes the parsed message to the appropriate decoder.
     """)
     def translateMessage(self, msg_id, data_list_hex, data_bin):
+
+        # self.Print("\nMessage Recieved with id: %d"%msg_id)
 
         if msg_id in HRC.ToggleKeys:
             return self.recvStateReport(msg_id, data_list_hex, data_bin)
@@ -467,12 +499,17 @@ class CanReceive:
     # State report
     """)
     def recvStateReport(self, msg_id, data_list_hex, data_bin):
+        # self.Print(f"{data_list_hex = }")
 
         self.time_micros[msg_id] = int('0'+data_bin[:32], base=2)
         self.rocketState[msg_id] = int('0'+data_list_hex[4], base=16)
+        # self.Print(f"{self.rocketState[msg_id] = }")
 
         state_bits = '{0:06b}'.format(int('0'+data_list_hex[5], base=16))
         states = list(map(lambda b: int('0'+b, base=2), state_bits))
+
+        # self.Print(f"{data_list_hex[5] = }")
+        # self.Print(f"{(state_bits, states) = }")
 
         for key, state in zip(HRC.ToggleKeys[msg_id], states):
             self.States[key] = HRC.ToggleLUT[key]['states'][state]
