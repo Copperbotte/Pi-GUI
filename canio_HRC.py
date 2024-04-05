@@ -109,7 +109,7 @@ class CanSend:
     """)
     def set_timing(self, id, time_micros):
         binstr = bitstring.BitArray(int=time_micros, length=40).bin
-        data = [binstr[i:i+8] for i in range(0, len(binstr), 8)]
+        data = [int('0'+binstr[i:i+8],base=2) for i in range(0, len(binstr), 8)]
         self.send(id, data, "Sent Timer Message:")
 
     @docstring("""
