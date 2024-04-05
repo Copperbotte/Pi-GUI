@@ -426,6 +426,9 @@ class CanReceive:
 
         self.rocketState = {k:HRC.PASSIVE for k in HRC.ToggleKeys.keys()}
         self.time_micros = {k:-1 for k in HRC.ToggleKeys.keys()}
+
+        self.timingLUT_micros = {k:-1 for k in HRC.TimingLUT.keys()}
+        
         # DEBUG
         # self._stdio = ""
 
@@ -484,6 +487,9 @@ class CanReceive:
         if msg_id in HRC.SensorKeys:
             return self.recvSensorData(msg_id, data_list_hex, data_bin)
         
+        if msg_id in self.timingLUT_micros:
+            return self.recvTiming(msg_id, data_list_hex, data_bin)
+        
         # DEBUG
         #for state_id, lut in HRC.ToggleLUT.items():
         #    if msg_id in lut['states']:
@@ -528,3 +534,14 @@ class CanReceive:
             v = val / HRC.SENSOR_MULTIPLIER
             self.Sensor_Raw[key] = v
             self.Sensor_Val[key] = HRC.SensorLUT[key]['b'] + HRC.SensorLUT[key]['m'] * v
+
+    @docstring("""
+    # Timing replies.
+    # 
+    # Assuming an unsigned 64 bit unix epoch nanosecond timestamp.
+    """)
+    def recvTiming(self, msg_id, data_list_hex, data_bin):
+
+        timestamp = int('0'+''.join(data_bin), base=2)
+        self.timingLUT_micros[msg_id] = timestamp/1000
+

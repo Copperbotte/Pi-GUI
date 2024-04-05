@@ -307,7 +307,7 @@ class Main:
         self.ValvesLabel.place(**self.boxValveGrid.asAbsArgs((1/2, -2/3)))
         
         # Second display ENGINE CONTROLLER box
-        self.FuelControllerLabel = Label(self.parentSecondScreen, fg=green, bg=black, font=aFont, text="ENGINE CONTROLLER")
+        self.FuelControllerLabel = Label(self.parentSecondScreen, fg=green, bg=black, font=aFont, text="MAIN SEQUENCE")
         self.FuelControllerLabel.place(**self.boxEngineControllerGrid.asAbsArgs((1/2, -2/3)))
 
     def ManualOverride(self, event):
@@ -451,7 +451,7 @@ class Main:
         
         boxSensorGrid = TransformBox((0.025+0.035, 0.100 + 0.015), (0.1, 0), (0, 0.075))
         boxValveGrid = TransformBox(boxSensorGrid((2,0)), (0.075, 0), (0, 0.075))
-        boxEngineControllerGrid = TransformBox(boxValveGrid((0,7 + 2/5)), (0.075,0), (0,0.1))
+        boxEngineControllerGrid = TransformBox(boxValveGrid((0,7 + 1/6)), (0.075,0), (0,0.075))
         
         self.boxSensorGrid = self.GridScale * boxSensorGrid
         self.boxValveGrid = self.GridScale * boxValveGrid
@@ -498,7 +498,7 @@ class Main:
             # Display 2 Boxes
             [1, self.boxSensorGrid,           (-0.5,-1.25), 2, 10,   5, orange],
             [1, self.boxValveGrid,            (-0.5,-1.25), 2, 7,    5, orange],
-            [1, self.boxEngineControllerGrid, (-0.5,-1),    2, 2.5,  5, green],
+            [1, self.boxEngineControllerGrid, (-0.5,-1),    2, 3.5,  5, green],
         ]
 
         displays = [self.parentMainScreen, self.parentSecondScreen]
@@ -1281,7 +1281,6 @@ class States:
 
 
 class Controller:
-    TankControllers = 0
 
     def __init__(self, args, Screen1, Screen2, canReceive, canSend, boxEngineControllerGrid, GridScale):
         #["Tank Controller HiPress", 2, False, black],
@@ -1292,68 +1291,33 @@ class Controller:
         self.parent2 = Screen2
         
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
-        if self.isAPropTank:
-            buffer = [
-                ["KpLabel",              "Kp",                       0, 0],
-                ["KiLabel",              "Ki",                       1, 0],
-                ["KdLabel",              "Kd",                       2, 0],
-                ["EpLabel",              "Ep",                       0, 1],
-                ["EiLabel",              "Ei",                       1, 1],
-                ["EdLabel",              "Ed",                       2, 1],
-                ["PIDSUMLabel",          "PID SUM",                  0, 2],
-                ["TargetValueLabel",     "Target\nValue",            1, 2],
-                ["ThresholdLabel",       "Threshold",                2, 2],
-                ["EnergizeTime",         "Energize\nTime",           0, 3],
-                ["DenergizeTime",        "Denergize\nTime",          1, 3],
-                ["VentFailSafePressure", "Vent Fail\nSafe Pressure", 2, 3],
-            ]
 
-            tf0 = GridScale * TransformBox((0.5, Controller.TankControllers/3), (1, 0), (0, 1)) * TransformBox((.025, 0.25), (0.05, 0), (0, 0.075))
+        self.Times = dict()
 
-            self.labels = dict()
-            for name1, text, relx, rely in buffer:
-
-                pt = np.array([relx, rely])
-                adj = TransformBox(pt, (1/3,0), (0,1/6))
-                tf = tf0 * adj
-                
-                self.labels[name1] = Label(self.parent2, fg=self.color, bg=black, font=aFont, text=text)
-                self.labels[name1].place(**tf.asAbsArgs((0, -1)))
-
-                name2 = name1 + '2'
-                self.labels[name2] = Label(self.parent2, font=("Verdana", 9), fg='orange', bg='black', text="NA")
-                self.labels[name2].place(**tf.asAbsArgs((0, 1)))
-
-            Controller.TankControllers += 1
-        if "Engine" in self.name:
-
-            self.Times = dict()
-
-            buffer = [
-                ["LOXMVTime",  "LOX MV\nTime (ms)",  blue,  0, 1, 3],
-                ["FuelMVTime", "Fuel MV\nTime (ms)", red,   1, 1, 2],
-                ["IGN1Time",   "IGN 1\nTime (ms)",   green, 0, 0, 4],
-                ["IGN2Time",   "IGN 2\nTime (ms)",   green, 1, 0, 5],
-            ]
+        buffer = [
+            [HRC.GET_LMV_OPEN,  "LOX MV\nOpen",    blue,    0, 0],
+            [HRC.GET_LMV_CLOSE, "LOX MV\nClose",   blue,    0, 1],
+            [HRC.GET_FMV_OPEN,  "Fuel MV\nOpen",   red,     1, 0],
+            [HRC.GET_FMV_CLOSE, "Fuel MV\nClose",  red,     1, 1],
+            [HRC.GET_IGNITION,  "Ignition\nTime",  green, 1/2, 2],
+        ]
+        
+        for ID, text, color, relx, rely in buffer:
+            pt = np.array([relx, rely])
+            adj = TransformBox(pt, (1/3,0), (0,1/6))
+            tf = boxEngineControllerGrid * adj
             
-            for name1, text1, fg, relx, rely, cid in buffer:
-                pt = np.array([relx, rely])
-                adj = TransformBox(pt, (1/3,0), (0,1/6))
-                tf = boxEngineControllerGrid * adj
-                
-                self.Times[name1] = Label(self.parent2, text=text1, fg=fg, bg=black, font=aFont)
-                self.Times[name1].place(**tf.asAbsArgs((0, -1)))
+            self.Times[ID] = []
+            self.Times[ID].append(Label(self.parent2, text=text, fg=color, bg=black, font=aFont))
+            self.Times[ID][0].place(**tf.asAbsArgs((0, -1)))
 
-                name2 = name1 + '2'
-                text2 = "N/A"#str(self.canReceive.Controllers[self.id][cid]/1000)
-                self.Times[name2] = Label(self.parent2, text=text2, fg=orange, bg=black, font=("Verdana", 9))
-                self.Times[name2].place(**tf.asAbsArgs((0, 1)))
+            text2 = str(self.canReceive.timingLUT_micros[ID]/1000) + 'ms'
+            self.Times[ID].append(Label(self.parent2, text=text2, fg=orange, bg=black, font=("Verdana", 9)))
+            self.Times[ID][1].place(**tf.asAbsArgs((0, 1)))
 
-                # Draws the background box
-                pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
-                Screen2.create_line(*tf(pts).tolist(), fill=fg, width=1, capstyle='projecting', joinstyle='miter')
-
-        # self.EMA.place(relx=.01, rely=0.575, relwidth=1 / 10, relheight=.02)
+            # Draws the background box
+            pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
+            Screen2.create_line(*tf(pts).tolist(), fill=color, width=1, capstyle='projecting', joinstyle='miter')
         
     def resetAll(self, var, label):
         self.canSend.controller_resetAll(self.id)
@@ -1408,6 +1372,10 @@ class Controller:
         self.canSend.controller_setCountdownStart(self.id, var, label)
 
     def Refresh(self):
+        if "Engine" in self.name:
+            for ID in HRC.TimingLUT.keys():
+                text = str(self.canReceive.timingLUT_micros[ID]/1000) + 'ms'
+                self.Times[ID][1].config(text=text)
         pass
         # if self.isAPropTank:
         #     if True:#CanStatus:

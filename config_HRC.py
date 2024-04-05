@@ -254,6 +254,14 @@ StateLUT = {
           TEST: "Test",
 }
 
+TimingLUT = {
+    GET_IGNITION:  SET_IGNITION,
+    GET_LMV_OPEN:  SET_LMV_OPEN,
+    GET_FMV_OPEN:  SET_FMV_OPEN,
+    GET_LMV_CLOSE: SET_LMV_CLOSE,
+    GET_FMV_CLOSE: SET_FMV_CLOSE,
+}
+
 ToggleLUT = {
     IGN1_ID: dict(node=SR_ENGINE, pin=IGN1_PIN_DIG, pwm=IGN1_PIN_PWM, states=[ IGN1_OFF,  IGN1_ON], statestr=[   "Off",   "On"], nick="IGN 1", name="Igniter 1"),
     IGN2_ID: dict(node=SR_ENGINE, pin=IGN2_PIN_DIG, pwm=IGN2_PIN_PWM, states=[ IGN2_OFF,  IGN2_ON], statestr=[   "Off",   "On"], nick="IGN 2", name="Igniter 2"),
