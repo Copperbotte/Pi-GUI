@@ -525,7 +525,7 @@ class Main:
         clicked.set("Choose Valve")
         self.valveOptions = []
         for valve in self.valveList:
-            self.valveOptions.append(valve.name)
+            self.valveOptions.append(valve.nick)
         self.ValveChoiceDropDown = OptionMenu(self.ValveSetsPopUp, clicked, *self.valveOptions,
                                               command=lambda Valve2: self.FunctionsDropDownMenu(Valve2, "Valve"))
         self.ValveChoiceDropDown.place(relx=0.2, rely=0.5)
@@ -566,7 +566,7 @@ class Main:
     def FunctionsDropDownMenu(self, object, type):
         if type == "Valve":
             for valve in self.valveList:
-                if valve.name == object:
+                if valve.nick == object:
                     self.chosenValve = valve
                     break
             clicked2 = StringVar()
@@ -771,6 +771,10 @@ class Main:
         self.TeensyNodes = Menu(self.menu)
         self.DataRequests = Menu(self.menu)
         self.SensorSets = Menu(self.menu)
+        self.Commands_Vehicle = Menu(self.menu)
+        self.Commands_Valves = Menu(self.menu)
+        self.Commands_Timing = Menu(self.menu)
+        self.Commands_Misc = Menu(self.menu)
         #self.AutoSequenceMenu = Menu(self.menu)
 
         for menu, graph in zip(self.graphsSubmenus, self.graphs):
@@ -781,6 +785,11 @@ class Main:
         self.menu.add_cascade(label="Teensy Nodes", menu=self.TeensyNodes)
         self.menu.add_cascade(label="Data Requests", menu=self.DataRequests)
 
+        self.menu.add_cascade(label="Vehicle Commands", menu=self.Commands_Vehicle)
+        self.menu.add_cascade(label="Valve Commands",   menu=self.Commands_Valves)
+        self.menu.add_cascade(label="Timing Commands",  menu=self.Commands_Timing)
+        self.menu.add_cascade(label="Misc Commands",    menu=self.Commands_Misc)
+
         #self.AutoSequenceMenu.add_command(label="Reset", command=lambda: self.AutoSequenceReset())
         #self.AutoSequenceMenu.add_command(label="Count Down Start", command=lambda: self.AutoSequenceSettings())
 
@@ -790,6 +799,67 @@ class Main:
         self.SetPoints.add_command(label="Controllers", command=lambda: self.ControllerSettingsPopUp())
 
         self.TeensyNodes.add_command(label="Teensy Node Reset", command=lambda: self.NodeReset())
+
+
+        # Vehicle commands
+        commands = [
+            dict(label=HRC.StateLUT[HRC.ABORT     ].replace('_',' '), command=self.canSend.abort),
+            dict(label=HRC.StateLUT[HRC.VENT      ].replace('_',' '), command=self.canSend.vent),
+            dict(label=HRC.StateLUT[HRC.FIRE      ].replace('_',' '), command=self.canSend.fire),
+            dict(label=HRC.StateLUT[HRC.TANK_PRESS].replace('_',' '), command=self.canSend.tank_press),
+            dict(label=HRC.StateLUT[HRC.HIGH_PRESS].replace('_',' '), command=self.canSend.high_press),
+            dict(label=HRC.StateLUT[HRC.STANDBY   ].replace('_',' '), command=self.canSend.standby),
+            dict(label=HRC.StateLUT[HRC.PASSIVE   ].replace('_',' '), command=self.canSend.passive),
+            dict(label=HRC.StateLUT[HRC.TEST      ].replace('_',' '), command=self.canSend.test)
+        ]
+        for command in commands:
+            self.Commands_Vehicle.add_command(**command)
+
+        # Valves & Igniters
+        def label(ID, state):
+            lut = HRC.ToggleLUT[ID]
+            return lut['name'] + ' ' + lut['statestr'][lut['states'].index(state)]
+        
+        commands = [
+            dict(label=label(HRC.IGN1_ID, HRC.IGN1_OFF),  command=self.canSend.ign1_off),
+            dict(label=label(HRC.IGN1_ID, HRC.IGN1_ON),   command=self.canSend.ign1_on),
+            dict(label=label(HRC.IGN2_ID, HRC.IGN2_OFF),  command=self.canSend.ign2_off),
+            dict(label=label(HRC.IGN2_ID, HRC.IGN2_ON),   command=self.canSend.ign2_on),
+            dict(label=label(HRC.HP_ID,   HRC.HP_CLOSE),  command=self.canSend.hp_close),
+            dict(label=label(HRC.HP_ID,   HRC.HP_OPEN),   command=self.canSend.hp_open),
+            dict(label=label(HRC.HV_ID,   HRC.HV_CLOSE),  command=self.canSend.hv_close),
+            dict(label=label(HRC.HV_ID,   HRC.HV_OPEN),   command=self.canSend.hv_open),
+            dict(label=label(HRC.FMV_ID,  HRC.FMV_CLOSE), command=self.canSend.fmv_close),
+            dict(label=label(HRC.FMV_ID,  HRC.FMV_OPEN),  command=self.canSend.fmv_open),
+            dict(label=label(HRC.LMV_ID,  HRC.LMV_CLOSE), command=self.canSend.lmv_close),
+            dict(label=label(HRC.LMV_ID,  HRC.LMV_OPEN),  command=self.canSend.lmv_open),
+            dict(label=label(HRC.LV_ID,   HRC.LV_CLOSE),  command=self.canSend.lv_close),
+            dict(label=label(HRC.LV_ID,   HRC.LV_OPEN),   command=self.canSend.lv_open),
+            dict(label=label(HRC.LDV_ID,  HRC.LDV_CLOSE), command=self.canSend.ldv_close),
+            dict(label=label(HRC.LDV_ID,  HRC.LDV_OPEN),  command=self.canSend.ldv_open),
+            dict(label=label(HRC.LDR_ID,  HRC.LDR_CLOSE), command=self.canSend.ldr_close),
+            dict(label=label(HRC.LDR_ID,  HRC.LDR_OPEN),  command=self.canSend.ldr_open),
+            dict(label=label(HRC.FV_ID,   HRC.FV_CLOSE),  command=self.canSend.fv_close),
+            dict(label=label(HRC.FV_ID,   HRC.FV_OPEN),   command=self.canSend.fv_open),
+            dict(label=label(HRC.FDV_ID,  HRC.FDV_CLOSE), command=self.canSend.fdv_close),
+            dict(label=label(HRC.FDV_ID,  HRC.FDV_OPEN),  command=self.canSend.fdv_open),
+            dict(label=label(HRC.FDR_ID,  HRC.FDR_CLOSE), command=self.canSend.fdr_close),
+            dict(label=label(HRC.FDR_ID,  HRC.FDR_OPEN),  command=self.canSend.fdr_open),
+        ]
+        for command in commands:
+            self.Commands_Valves.add_command(**command)
+
+        # Timing
+
+        # Misc
+        commands = [
+            dict(label="Ping",     command=self.canSend.ping),
+            dict(label="Zero PTs", command=self.canSend.zero_pts),
+        ]
+        for command in commands:
+            self.Commands_Misc.add_command(**command)
+
+
 
         app.config(menu=self.menu)
 
