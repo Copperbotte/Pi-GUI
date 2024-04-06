@@ -255,8 +255,6 @@ class Main:
         # One of these vertices is unused, and a lot are unneeded.
         # They're used for positioning of valve buttons later.
 
-        ScreenSpace = TransformBox((800,  50), (25, 0), (0, 25))
-        self.boxWireGrid = self.boxWireGrid * ScreenSpace
 
         Color_Buffer = [yellow, purple, blue, red]
 
@@ -435,42 +433,28 @@ class Main:
         ]
 
     def GenerateBoxes(self):
-        #self.GridScale = TransformBox((0, 0), (1920,0), (0,1041))
+        self.boxWireGrid = TransformBox((752, 50), (25,0), (0,25))
 
-        # This was learned using gradient descent on the difference of the original transform on valveList, and 
-        # pts2 = np.array([[v.StatusLabel2.winfo_x(), v.StatusLabel2.winfo_y()] for v in GUI.valveList]).
-        #self.GridScale = TransformBox((24,-23), (1920,0), (0,1040))
-        #self.GridScale = TransformBox((0,0), (1920,0), (0,1040))
-        # 
-        # The above commented out code was used to find relative positioned coordinates.
-        #     I've since moved to absolute coordinates, since the pi's target displays shouldn't ever change.
-        #     Feel free to remove this comment block as needed. -Joe Kesser, 2024 March 28
-
-        self.GridScale = TransformBox((0,0), (1920,0), (0,1080))
-        self.boxWireGrid = TransformBox(self.GridScale((-0.025, 0)), (1,0), (0,1))
+        boxSensorGrid = TransformBox((115.2, 124.2), (192, 0), (0, 81))
+        boxValveGrid = TransformBox(boxSensorGrid((2,0)), (0.75*192, 0), (0, 81))
+        boxEngineControllerGrid = TransformBox(boxValveGrid((0,7 + 1/6)), (0.75*192,0), (0,81))
         
-        boxSensorGrid = TransformBox((0.025+0.035, 0.100 + 0.015), (0.1, 0), (0, 0.075))
-        boxValveGrid = TransformBox(boxSensorGrid((2,0)), (0.075, 0), (0, 0.075))
-        boxEngineControllerGrid = TransformBox(boxValveGrid((0,7 + 1/6)), (0.075,0), (0,0.075))
-        
-        self.boxSensorGrid = self.GridScale * boxSensorGrid
-        self.boxValveGrid = self.GridScale * boxValveGrid
-        self.boxEngineControllerGrid = self.GridScale * boxEngineControllerGrid
+        self.boxSensorGrid = boxSensorGrid
+        self.boxValveGrid = boxValveGrid
+        self.boxEngineControllerGrid = boxEngineControllerGrid
 
         # Main display boxes
-        boxLoxGrid = TransformBox((0.175+0.01, 0.6), (0.05, 0), (0, 0.1))
-        boxEngineGrid = TransformBox((0.55+0*0.025, 0.588), (0.05, 0), (0, 0.1))
+        boxLoxGrid = TransformBox((355.2, 648), (96, 0), (0, 108))
+        boxEngineGrid = TransformBox((1056, 635.04), (96, 0), (0, 108))
+        boxFuelGrid = TransformBox(boxEngineGrid((2.5,0)), (96, 0), (0, 108))
+        boxAeroGrid = TransformBox((748.8, 669.6), (96, 0), (0, 108))
+        boxHighPress = TransformBox((912, 81), (96, 0), (0, 108))
         
-        boxFuelGrid = TransformBox(boxEngineGrid((2.5,0)), (0.05, 0), (0, 0.1))
-        
-        boxAeroGrid = TransformBox((0.39, 0.62), (0.05, 0), (0, 0.1))
-        boxHighPress = TransformBox((0.475, 0.075), (0.05, 0), (0, 0.1))
-        
-        self.boxLoxGrid = self.GridScale * boxLoxGrid
-        self.boxEngineGrid = self.GridScale * boxEngineGrid
-        self.boxFuelGrid = self.GridScale * boxFuelGrid
-        self.boxAeroGrid = self.GridScale * boxAeroGrid
-        self.boxHighPress = self.GridScale * boxHighPress
+        self.boxLoxGrid = boxLoxGrid
+        self.boxEngineGrid = boxEngineGrid
+        self.boxFuelGrid = boxFuelGrid
+        self.boxAeroGrid = boxAeroGrid
+        self.boxHighPress = boxHighPress
 
         self.dictBoxGridsMain = dict(
             Loxy=self.boxLoxGrid,
@@ -481,9 +465,6 @@ class Main:
         )
 
     def GenerateBoxDebug(self):
-
-        boxSensorGrid = self.GridScale * self.boxSensorGrid
-        boxValveGrid = self.GridScale * self.boxValveGrid
 
         pts = np.array([[0,0], [1,0], [1,1], [0,1], [0,0]])
 
@@ -718,7 +699,7 @@ class Main:
 
         # Instantiates Every Sensor
         for controller in Main.Controllers:
-            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive, self.canSend, self.boxEngineControllerGrid, self.GridScale))
+            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive, self.canSend, self.boxEngineControllerGrid))
 
         self.Menus(self.parentMainScreen, self.appMainScreen)
         self.Menus(self.parentSecondScreen, self.appSecondScreen)
@@ -1087,7 +1068,7 @@ class States:
 
 class Controller:
 
-    def __init__(self, args, Screen1, Screen2, canReceive, canSend, boxEngineControllerGrid, GridScale):
+    def __init__(self, args, Screen1, Screen2, canReceive, canSend, boxEngineControllerGrid):
         #["Tank Controller HiPress", 2, False, black],
         self.name, self.id, self.isAPropTank, self.color = args
         self.canReceive = canReceive
@@ -1107,8 +1088,8 @@ class Controller:
             [HRC.GET_IGNITION,  "Ignition\nTime",  green, 1/2, 2],
         ]
         
-        for ID, text, color, relx, rely in buffer:
-            pt = np.array([relx, rely])
+        for ID, text, color, x, y in buffer:
+            pt = np.array([x, y])
             adj = TransformBox(pt, (1/3,0), (0,1/6))
             tf = boxEngineControllerGrid * adj
             
