@@ -177,7 +177,7 @@ class Main:
     ]
 
     # System starts off in a passive state
-    CurrState = "Passive"
+    CurrState = HRC.PASSIVE #"Passive"
 
     def __init__(self, canReceive, canSend):
         self.canReceive = canReceive
@@ -227,7 +227,7 @@ class Main:
 
         for src, i in buffer:
             img = self.imageCache(src)
-            label = Label(self.parentMainScreen, image=img, bg=black)
+            label = Label(self.canvas[0], image=img, bg=black)
             label.image = img
             label.place(**self.boxWireGrid.asAbsArgs(self.Vertex_Buffer[i]))
         
@@ -281,31 +281,31 @@ class Main:
 
         #self.WireDebugNumbers = []
         #for i, v in enumerate(Vertex_Buffer):
-        #    self.WireDebugNumbers.append(Label(self.parentMainScreen, fg=orange, bg=black, font=aFont, text="%d"%i))
+        #    self.WireDebugNumbers.append(Label(self.canvas[0], fg=orange, bg=black, font=aFont, text="%d"%i))
         #    self.WireDebugNumbers[-1].place(**self.boxWireGrid.asAbsArgs(v))
 
         for inds in Index_Buffer:
             color = Color_Buffer[inds[0]]
             verts = tuple(map(lambda i: self.boxWireGrid(Vertex_Buffer[i]).tolist(), inds[1:]))
-            self.parentMainScreen.create_line(*verts, fill=color, width=5, capstyle='round')
+            self.canvas[0].create_line(*verts, fill=color, width=5, capstyle='round')
             for i,v in zip(inds[1:], verts):
-                self.parentMainScreen.create_line(v, v, fill=color, width=10, capstyle='round')
-                #self.WireDebugNumbers.append(Label(self.parentMainScreen, fg=color, bg=black, font=aFont, text="%d"%i))
+                self.canvas[0].create_line(v, v, fill=color, width=10, capstyle='round')
+                #self.WireDebugNumbers.append(Label(self.canvas[0], fg=color, bg=black, font=aFont, text="%d"%i))
                 #self.WireDebugNumbers[-1].place(x=v[0], y=v[1], anchor='center')
         
         # This holds the control buttons on the left.
-        self.parentMainScreen.create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
+        self.canvas[0].create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
 
         # Second display SENSORS box
-        self.SensorsLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="SENSORS")
+        self.SensorsLabel = Label(self.canvas[1], fg=orange, bg=black, font=aFont, text="SENSORS")
         self.SensorsLabel.place(**self.boxSensorGrid.asAbsArgs((1/2, -2/3)))
 
         # Second display VALVES box
-        self.ValvesLabel = Label(self.parentSecondScreen, fg=orange, bg=black, font=aFont, text="VALVES")
+        self.ValvesLabel = Label(self.canvas[1], fg=orange, bg=black, font=aFont, text="VALVES")
         self.ValvesLabel.place(**self.boxValveGrid.asAbsArgs((1/2, -2/3)))
         
         # Second display ENGINE CONTROLLER box
-        self.FuelControllerLabel = Label(self.parentSecondScreen, fg=green, bg=black, font=aFont, text="MAIN SEQUENCE")
+        self.FuelControllerLabel = Label(self.canvas[1], fg=green, bg=black, font=aFont, text="MAIN SEQUENCE")
         self.FuelControllerLabel.place(**self.boxEngineControllerGrid.asAbsArgs((1/2, -2/3)))
 
     def ManualOverride(self, event):
@@ -313,7 +313,7 @@ class Main:
             self.savedCurrState = Main.CurrState
             for i in range(len(Main.States)):
                 if Main.States[i][0] == Main.CurrState:
-                    self.reminderButtonOfCurrState = Button(self.parentMainScreen, text=Main.CurrState,
+                    self.reminderButtonOfCurrState = Button(self.canvas[0], text=Main.CurrState,
                                                             fg='orange', bg='black', bd=5, font=20)
                     # Goes to logic function when button is pressed
                     self.reminderButtonOfCurrState.place(relx=0.0125, rely=1 - (1 / len(Main.States) / 2) * (
@@ -321,15 +321,15 @@ class Main:
                                                          relwidth=0.125)
         if self.manualOverrideState:
             img = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
-            self.Button = Button(self.parentMainScreen, image=img, fg='red', bg='black', bd=5)
-            self.parentMainScreen.killSwitchState = False
+            self.Button = Button(self.canvas[0], image=img, fg='red', bg='black', bd=5)
+            self.canvas[0].killSwitchState = False
             self.reminderButtonOfCurrState.destroy()
             Main.CurrState = self.savedCurrState
             # msg = can.Message(arbitration_id=self.overrideCommandID, data=[self.overrideCommandON], is_extended_id=False)
             # bus.send(msg)
         else:
             img = self.imageCache("GUI Images/ManualOverrideEnabledButton.png")
-            self.Button = Button(self.parentMainScreen, image=img, fg='green', bg='black', bd=5)
+            self.Button = Button(self.canvas[0], image=img, fg='green', bg='black', bd=5)
             self.manualOverrideState = True
             Main.CurrState = "Override"
             # msg = can.Message(arbitration_id=self.overrideCommandID, data=[self.overrideCommandOFF], is_extended_id=False)
@@ -344,9 +344,9 @@ class Main:
             aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
             print(self.canReceive.ThrottlePoints)
             for throttlepoint in range(len(self.canReceive.ThrottlePoints)):
-                Timelabel = Label(self.parentSecondScreen, text = "T + " + str(self.canReceive.ThrottlePoints[throttlepoint][0]), fg = green, bg = black, font = aFont)
+                Timelabel = Label(self.canvas[1], text = "T + " + str(self.canReceive.ThrottlePoints[throttlepoint][0]), fg = green, bg = black, font = aFont)
                 Timelabel.place(relx = 0.6, rely = 0.5 + throttlepoint*.1)
-                Pressurelabel = Label(self.parentSecondScreen, text = "Pressure: "+ str(self.canReceive.ThrottlePoints[throttlepoint][1]), fg = green, bg = black, font = aFont)
+                Pressurelabel = Label(self.canvas[1], text = "Pressure: "+ str(self.canReceive.ThrottlePoints[throttlepoint][1]), fg = green, bg = black, font = aFont)
                 Pressurelabel.place(relx = 0.65, rely = 0.5 + throttlepoint*.1)
     
     # Readings Refresher, Recursive Function
@@ -392,26 +392,24 @@ class Main:
                 self.refreshCounter += GRAPHDATAREFRESHRATE
 
             self.sensorList[1].ReadingLabel.after(GRAPHDATAREFRESHRATE, self.Refresh)
-            
-        #self.EngineNodeState.config(text = "Engine Node State: " + self.canReceive.NodeStatusRenegadeEngine)
-        #self.PropNodeState.config(text = "Prop Node State: " + self.canReceive.NodeStatusRenegadeProp)
-        self.EngineNodeState.config(text="Engine Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_ENGINE]])
-        self.PropNodeState.config(  text="Prop Node State: "   + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
+        
+        self.NodeStateLabels[HRC.SR_ENGINE].config(text="Engine Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_ENGINE]])
+        self.NodeStateLabels[HRC.SR_PROP  ].config(  text="Prop Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
 
     def StateReset(self):
-        Main.CurrState = "Passive"
+        Main.CurrState = HRC.PASSIVE
         # Store previosly instantiated State. Arm States may be able to access the state before it
         prevState = None
         # Every state in State Array gets instantiated and a Button is made for it
-        for i in range(len(Main.States)):
-            button = States(self.parentMainScreen, Main.States[i], self.canSend, prevState=prevState)
+        for state in Main.States:
+            button = States(self.canvas, self.canReceive, self.canSend, state, prevState=prevState)
             # Creates the button and places it into the Frame. May change name later since it really inst instantiating
             button.MainStateInstantiation()
             # Updates the prevState so that the next state may be able to access it. Its pretty much a Linked List
             prevState = button
 
     def AutoSequence(self):
-        self.autoseqence = Label(self.parentMainScreen, text="Boom Boom \n wont go boom boom", bg="black", fg="Green",
+        self.autoseqence = Label(self.canvas[0], text="Boom Boom \n wont go boom boom", bg="black", fg="Green",
                                  font=("Verdana", 25))
         self.autoseqence.place(relx=.3, rely=0.1)
         self.autosequence_str = ""
@@ -421,15 +419,15 @@ class Main:
         self.graphingStatus = not self.graphingStatus
 
     def GenerateGraphs(self):
-        self.pauseButton = Button(self.parentSecondScreen, font=("Verdana", 10), fg='red', bg='black',
+        self.pauseButton = Button(self.canvas[1], font=("Verdana", 10), fg='red', bg='black',
                                   text="GRAPH PAUSE\nBUTTON", command=lambda: self.PauseGraphs())
         self.pauseButton.place(relx=.85, rely=.45)
 
         self.graphs = [
-            Graph("Graph 1", self.parentMainScreen,   .775, .1 ),
-            Graph("Graph 2", self.parentMainScreen,   .775, .6 ),
-            Graph("Graph 3", self.parentSecondScreen, .775, .05),
-            Graph("Graph 4", self.parentSecondScreen, .775, .5 ),
+            Graph("Graph 1", self.canvas[0],   .775, .1 ),
+            Graph("Graph 2", self.canvas[0],   .775, .6 ),
+            Graph("Graph 3", self.canvas[1], .775, .05),
+            Graph("Graph 4", self.canvas[1], .775, .5 ),
         ]
 
     def GenerateBoxes(self):
@@ -482,19 +480,19 @@ class Main:
             [1, self.boxEngineControllerGrid, (-0.5,-1),    2, 3.5,  5, green],
         ]
 
-        displays = [self.parentMainScreen, self.parentSecondScreen]
+        displays = [self.canvas[0], self.canvas[1]]
         
         for di, tf, pt, dx, dy, width, color in buffer:
             tf = tf * TransformBox(pt, (dx,0), (0,dy))
             displays[di].create_line(*tf(pts).tolist(), fill=color, width=width, joinstyle='miter')
 
         # DEBUG
-        # self.button = Button(self.parentMainScreen, text="Test state report", fg='red', bg='black', bd=5,
+        # self.button = Button(self.canvas[0], text="Test state report", fg='red', bg='black', bd=5,
         #                      command=lambda: self.canSend.TEST_send_state_reports(self.canReceive), font=20)
         # self.button.place(x=1500, y=400, width=256, height=256)
 
     def TimingSettingsPopUp(self):
-        self.TimerPopUp = Toplevel(self.appMainScreen, background=grey)
+        self.TimerPopUp = Toplevel(self.window[0], background=grey)
         self.TimerPopUp.geometry("750x250")
         self.chosenTimingFunction = None
         clicked = StringVar()
@@ -540,39 +538,19 @@ class Main:
         self.graphsMenu = Menu(self.menu)
         self.graphsSubmenus = [Menu(self.menu) for g in self.graphs]
 
-        # self.SetPoints = Menu(self.menu)
-        # self.TeensyNodes = Menu(self.menu)
-        # self.DataRequests = Menu(self.menu)
-        # self.SensorSets = Menu(self.menu)
         self.Commands_Vehicle = Menu(self.menu)
         self.Commands_Valves = Menu(self.menu)
         self.Commands_Timing = Menu(self.menu)
         self.Commands_Misc = Menu(self.menu)
-        #self.AutoSequenceMenu = Menu(self.menu)
 
         for menu, graph in zip(self.graphsSubmenus, self.graphs):
             self.graphsMenu.add_cascade(label=graph.label, menu=menu)
         
         self.menu.add_cascade(label="Graphs", menu=self.graphsMenu)
-        # self.menu.add_cascade(label="Set Points", menu=self.SetPoints)
-        # self.menu.add_cascade(label="Teensy Nodes", menu=self.TeensyNodes)
-        # self.menu.add_cascade(label="Data Requests", menu=self.DataRequests)
-
         self.menu.add_cascade(label="Vehicle Commands", menu=self.Commands_Vehicle)
         self.menu.add_cascade(label="Valve Commands",   menu=self.Commands_Valves)
         self.menu.add_cascade(label="Timing Commands",  menu=self.Commands_Timing)
         self.menu.add_cascade(label="Misc Commands",    menu=self.Commands_Misc)
-
-        #self.AutoSequenceMenu.add_command(label="Reset", command=lambda: self.AutoSequenceReset())
-        #self.AutoSequenceMenu.add_command(label="Count Down Start", command=lambda: self.AutoSequenceSettings())
-
-        # self.SetPoints.add_command(label="Valves", command=lambda: self.ValveSettingsPopUp())
-        # self.SetPoints.add_command(label="Sensors", command=lambda: self.SensorSettingsPopUp())
-        # #self.SetPoints.add_cascade(label="Auto Sequence", menu=self.AutoSequenceMenu)
-        # self.SetPoints.add_command(label="Controllers", command=lambda: self.ControllerSettingsPopUp())
-
-        # self.TeensyNodes.add_command(label="Teensy Node Reset", command=lambda: self.NodeReset())
-
 
         # Vehicle commands
         commands = [
@@ -651,30 +629,36 @@ class Main:
     def run(self):  # This takes place of the init
         """ TKinter Initialization"""
         self.root = Tk()
-        self.appMainScreen = Toplevel(self.root)
-        self.appMainScreen.configure(background=black)
-        self.appMainScreen.geometry("1920x1080")
+        self.window = []
+        self.canvas  = []
+        for resolution in ["1920x1080", "1920x1080+1920+0"]:
 
-        self.appSecondScreen = Toplevel(self.root)
-        self.appSecondScreen.configure(background=black)
-        self.appSecondScreen.geometry("1920x1080+1920+0")
+            # Generates the windows
+            window = Toplevel(self.root)
+            window.configure(background=black)
+            window.geometry(resolution)
 
-        """ Main Canvas Initialization"""
-        self.parentMainScreen = Canvas(self.appMainScreen, bg=black, highlightbackground=black, highlightthickness=0)
-        self.parentMainScreen.place(relx=0, rely=0, relwidth=1, relheight=1)
+            # Generates associated canvasses
+            canvasArgs = dict(bg=black, highlightbackground=black, highlightthickness=0)
+            canvas = Canvas(window, **canvasArgs)
+            canvas.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-        self.parentSecondScreen = Canvas(self.appSecondScreen, bg=black, highlightbackground=black,
-                                         highlightthickness=0)
-        self.parentSecondScreen.place(relx=0, rely=0, relwidth=1, relheight=1)
+            self.window.append(window)
+            self.canvas.append(canvas)
 
         self.imageCache = ImageCache()
 
         self.aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
-        
-        self.PropNodeState = Label(self.parentMainScreen, text="Prop Node State", fg=orange, bg=black, font=("Arial", 25))
-        self.PropNodeState.place(relx=.01, rely=0.02)
-        self.EngineNodeState = Label(self.parentMainScreen, text="Engine Node State", fg=orange, bg=black, font=("Arial", 25))
-        self.EngineNodeState.place(relx=.01, rely=0.07)
+
+        buffer = [
+            ["Prop Node State",   HRC.SR_PROP,   20, 22],
+            ["Engine Node State", HRC.SR_ENGINE, 20, 76],
+        ]
+        self.NodeStateLabels = dict()
+        for name, ID, x, y in buffer:
+            label = Label(self.canvas[0], text=name, fg=orange, bg=black, font=("Arial", 25))
+            label.place(x=x, y=y)
+            self.NodeStateLabels[ID] = label
 
         self.GenerateBoxes()
         self.propLinePlacement()
@@ -685,34 +669,34 @@ class Main:
         self.GenerateBoxDebug()
         
 
-        self.Vent = States(self.parentMainScreen, Main.Vent, self.canSend)
-        self.Vent.VentAbortInstantiation()
-        self.Abort = States(self.parentMainScreen, Main.Abort, self.canSend)
-        self.Abort.VentAbortInstantiation()
+        # self.Vent = States(self.canvas[0], Main.Vent, self.canSend)
+        # self.Vent.VentAbortInstantiation()
+        # self.Abort = States(self.canvas[0], Main.Abort, self.canSend)
+        # self.Abort.VentAbortInstantiation()
         # Instantiates Every Valve
         for valve in Main.valves:
-            self.valveList.append(Valves(self.parentMainScreen, valve, self.parentSecondScreen, self.canReceive, self.canSend, self.boxValveGrid, self.boxWireGrid, self.Vertex_Buffer, self.imageCache))
+            self.valveList.append(Valves(self.canvas, self.canReceive, self.canSend, valve, self.boxValveGrid, self.boxWireGrid, self.Vertex_Buffer, self.imageCache))
 
         # Instantiates Every Sensor
         for sensor in Main.sensors:
-            self.sensorList.append(Sensors(self.parentMainScreen, sensor, self.parentSecondScreen, self.canReceive, self.canSend, self.graphs, self.boxSensorGrid, self.dictBoxGridsMain))
+            self.sensorList.append(Sensors(self.canvas, self.canReceive, self.canSend, sensor, self.graphs, self.boxSensorGrid, self.dictBoxGridsMain))
 
         # Instantiates Every Sensor
         for controller in Main.Controllers:
-            self.controllerList.append(Controller(controller, self.parentMainScreen, self.parentSecondScreen, self.canReceive, self.canSend, self.boxEngineControllerGrid))
+            self.controllerList.append(Controller(self.canvas, self.canReceive, self.canSend, controller, self.boxEngineControllerGrid))
 
-        self.Menus(self.parentMainScreen, self.appMainScreen)
-        self.Menus(self.parentSecondScreen, self.appSecondScreen)
+        self.Menus(self.canvas[0], self.window[0])
+        self.Menus(self.canvas[1], self.window[1])
 
-        self.time = Label(self.parentMainScreen, fg="Orange", bg=black,
+        self.time = Label(self.canvas[0], fg="Orange", bg=black,
                           text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), font=("Verdana", 17))
         self.time.place(relx=.85, rely=0.01)
 
-#         self.ManualOverridePhoto = PhotoImage(file="GUI Images/ManualOverrideDisabledButton.png")
-#         self.ManualOverrideButton = Button(self.parentMainScreen, image=self.ManualOverridePhoto, fg='red', bg='black',
-#                                            bd=5)
-#         self.ManualOverrideButton.place(relx=.7, rely=0.2)
-#         self.ManualOverrideButton.bind('<Double-1>', self.ManualOverride)  # bind double left clicks
+        self.ManualOverridePhoto = ImageCache("GUI Images/ManualOverrideDisabledButton.png")
+        self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
+                                           bd=5)
+        self.ManualOverrideButton.place(relx=.7, rely=0.2)
+        self.ManualOverrideButton.bind('<Double-1>', self.ManualOverride)  # bind double left clicks
 
         
 
@@ -720,44 +704,44 @@ class Main:
         self.Refresh()
 
         """ Runs GUI Loop"""
-        self.appMainScreen.attributes("-fullscreen",
+        self.window[0].attributes("-fullscreen",
                                       True)  # "zoomed" is fullscreen except taskbars on startup, "fullscreen" is no taskbars true fullscreen
-        self.appMainScreen.bind("<Escape>",
-                                lambda event: self.appMainScreen.destroy())  # binds escape key to killing the window
-        self.appMainScreen.bind("<F11>",
-                                lambda event: self.appMainScreen.attributes("-fullscreen",
+        self.window[0].bind("<Escape>",
+                                lambda event: self.window[0].destroy())  # binds escape key to killing the window
+        self.window[0].bind("<F11>",
+                                lambda event: self.window[0].attributes("-fullscreen",
                                                                             True))  # switches from zoomed to fullscreen
-        self.appMainScreen.bind("<F12>",
-                                lambda event: self.appMainScreen.attributes("-fullscreen",
+        self.window[0].bind("<F12>",
+                                lambda event: self.window[0].attributes("-fullscreen",
                                                                             False))  # switches from fullscreen to zoomed
 
-        self.appSecondScreen.attributes("-fullscreen",
+        self.window[1].attributes("-fullscreen",
                                         False)  # "zoomed" is fullscreen except taskbars on startup, "fullscreen" is no taskbars true fullscreen
-        self.appSecondScreen.bind("<Escape>", lambda
-            event: self.appSecondScreen.destroy())  # binds escape key to killing the window
-        self.appSecondScreen.bind("<F11>",
-                                  lambda event: self.appSecondScreen.attributes("-fullscreen",
+        self.window[1].bind("<Escape>", lambda
+            event: self.window[1].destroy())  # binds escape key to killing the window
+        self.window[1].bind("<F11>",
+                                  lambda event: self.window[1].attributes("-fullscreen",
                                                                                 True),
-                                  lambda event: self.appSecondScreen.geometry(
+                                  lambda event: self.window[1].geometry(
                                       "1920x1080-1920+0"))  # switches from zoomed to fullscreen
-        # self.appSecondScreen.bind("<F11>",
-        #                           lambda event: self.appSecondScreen.geometry("1920x1080-1920+0"))  # switches from zoomed to fullscreen
+        # self.window[1].bind("<F11>",
+        #                           lambda event: self.window[1].geometry("1920x1080-1920+0"))  # switches from zoomed to fullscreen
 
-        self.appSecondScreen.bind("<F12>",
-                                  lambda event: self.appSecondScreen.attributes("-fullscreen",
+        self.window[1].bind("<F12>",
+                                  lambda event: self.window[1].attributes("-fullscreen",
                                                                                 False))  # switches from fullscreen to zoomed
         self.root.withdraw()
 
         #self.GenerateBoxDebug()
 
         self.root.mainloop()
-        #self.appMainScreen.mainloop()
+        #self.window[0].mainloop()
 
 
 class Sensors:
     numOfSensors = 0
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend, graphs, boxSensorGrid, dictBoxGridsMain):
+    def __init__(self, canvas, canReceive, canSend, args, graphs, boxSensorGrid, dictBoxGridsMain):
         # Sensor LUT Key, Grid Key, Grid Position, Box Position, Box Adj, Color
         # [HRC.PT_LOX_HIGH_ID,      "HiPr", (  0,   0), (1, 0), (0, 1/3), yellow],
 
@@ -765,8 +749,7 @@ class Sensors:
 
         self.canReceive = canReceive
         self.canSend = canSend
-        self.parent = parent
-        self.SecondScreen = SecondScreen
+        self.canvas = canvas
 
         self.sensorData = [0] * 100
         self.GraphStatus = [IntVar() for g in graphs]
@@ -788,17 +771,17 @@ class Sensors:
         tf = dictBoxGridsMain[self.grid] * adj
         
         # self.label corresponds with the main screen box labels, as their titles.
-        self.label = Label(parent, text=self.name, font=aFont, fg=self.color, bg=bg)
+        self.label = Label(self.canvas[0], text=self.name, font=aFont, fg=self.color, bg=bg)
         self.label.place(**tf.asAbsArgs(-self.xyoff))
         
         # self.ReadingLabel is the corresponding value for this box.
-        self.ReadingLabel = Label(parent, text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
+        self.ReadingLabel = Label(self.canvas[0], text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
         self.ReadingLabel.place(**tf.asAbsArgs(self.xyoff))
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
         tf = tf * TransformBox((0,0), (6/7,0), (0,1/3))
-        parent.create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
+        self.canvas[0].create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
 
         
         ### 2nd Display
@@ -812,24 +795,24 @@ class Sensors:
         #pt2 = tf.asAbsArgs(( 1, -1))
 
         # self.label2 is the sensor title in the SENSORS box.
-        self.label2 = Label(SecondScreen, text=self.name, font=aFont, fg=self.color, bg=bg)
+        self.label2 = Label(self.canvas[1], text=self.name, font=aFont, fg=self.color, bg=bg)
         self.label2.place(**pt0)
-#         self.RawReadingLabel2 = Label(SecondScreen, text="N/A Raw", font=("Verdana", 9), fg='orange', bg=bg)
+#         self.RawReadingLabel2 = Label(self.canvas[1], text="N/A Raw", font=("Verdana", 9), fg='orange', bg=bg)
 #         self.RawReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .125 + .025 + .05,
 #                                     rely=(Sensors.numOfSensors // 2) * .075 + .05 + .0125, **placeargs)
         
         # self.ConvReadingLabel2 is the corresponding value for this box.
-        self.ConvReadingLabel2 = Label(SecondScreen, text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
+        self.ConvReadingLabel2 = Label(self.canvas[1], text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
         self.ConvReadingLabel2.place(**pt1)
 
         # DEBUG
-        #self.ConvReadingLabel3 = Label(SecondScreen, text=str(HRC.PinLUT[HRC.SensorLUT[self.id]['pin']]), font=("Verdana", 9), fg='orange', bg=bg)
+        #self.ConvReadingLabel3 = Label(self.canvas[1], text=str(HRC.PinLUT[HRC.SensorLUT[self.id]['pin']]), font=("Verdana", 9), fg='orange', bg=bg)
         #self.ConvReadingLabel3.place(**pt2)
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
         tf = tf * TransformBox((0,0), (1,0), (0,1/3))
-        SecondScreen.create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
+        self.canvas[1].create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
 
         Sensors.numOfSensors += 1
 
@@ -859,7 +842,7 @@ class Valves:
         select = '-'.join([self.photo_name, status, enable])
         return self.imageCache("Valve Buttons/%s.png"%select, resize=(72,72))
 
-    def __init__(self, parent, args, SecondScreen, canReceive, canSend, boxValveGrid, boxWireGrid, Vertex_Buffer, imageCache):
+    def __init__(self, canvas, canReceive, canSend, args, boxValveGrid, boxWireGrid, Vertex_Buffer, imageCache):
         # State LUT Key, VBuffer Index, color
         # [HRC.HV_ID,    4, yellow],
 
@@ -868,8 +851,7 @@ class Valves:
         self.canReceive = canReceive
         self.canSend = canSend
         self.imageCache = imageCache
-        self.parent = parent
-        self.SecondScreen = SecondScreen
+        self.canvas = canvas
         self.state = False
         self.nick = HRC.ToggleLUT[self.id]['nick']
         self.photo_name = self.nick.replace(' ','')
@@ -900,7 +882,7 @@ class Valves:
         self.photo = self.imgFromState()
 
         # Displays a button on a vertex in the propline diagram.
-        self.Button = Button(parent, font=("Verdana", 10), fg=red, bg=bg)
+        self.Button = Button(self.canvas[0], font=("Verdana", 10), fg=red, bg=bg)
         self.Button.place(**boxWireGrid.asAbsArgs(Vertex_Buffer[self.index]))
         self.Button.config(image=self.photo)
         self.Button.bind('<Double-1>', self.ValveActuation)
@@ -914,16 +896,16 @@ class Valves:
         pt1 = tf.asAbsArgs(( 1,-1))
         pt2 = tf.asAbsArgs(( 1, 1))
 
-        self.label2 = Label(SecondScreen, text=self.nick, font=aFont, fg=self.color, bg=bg)
+        self.label2 = Label(self.canvas[1], text=self.nick, font=aFont, fg=self.color, bg=bg)
         self.label2.place(**pt0)
-        self.StatusLabel2 = Label(SecondScreen, text="N/A Status", font=("Verdana", 9), fg=orange, bg=bg)
+        self.StatusLabel2 = Label(self.canvas[1], text="N/A Status", font=("Verdana", 9), fg=orange, bg=bg)
         self.StatusLabel2.place(**pt1)
-        self.VoltageLabel2 = Label(SecondScreen, text="N/A Voltage", font=("Verdana", 9), fg=orange, bg=bg)
+        self.VoltageLabel2 = Label(self.canvas[1], text="N/A Voltage", font=("Verdana", 9), fg=orange, bg=bg)
         self.VoltageLabel2.place(**pt2)
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
-        SecondScreen.create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
+        self.canvas[1].create_line(*tf(pts).tolist(), fill=self.color, width=1, capstyle='projecting', joinstyle='miter')
         
         Valves.numOfValves += 1
 
@@ -979,13 +961,13 @@ class States:
 
     # Parent is the Parent Frame
     # args is the data in the States array.
-    def __init__(self, parent, args, canSend, prevState=None):
+    def __init__(self, canvas, canReceive, canSend, args, prevState=None):
         # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
         #["Active",              2, 1,  3,  5, False, 1],
         self.stateName, self.stateID, self.commandID, self.commandOFF, self.commandON, \
             self.isArmState, self.StateNumber = args
 
-        self.parent = parent
+        self.canvas = canvas
         self.state = False
         self.prevState = prevState
         self.canSend = canSend
@@ -1006,7 +988,7 @@ class States:
         self.bgColor = "black"
         self.isVentAbort = False
         # Goes to logic function when button is pressed
-        self.button = Button(self.parent, text=self.stateName, fg='red', bg='black', bd=5,
+        self.button = Button(self.canvas[0], text=self.stateName, fg='red', bg='black', bd=5,
                              command=lambda: self.Logic(), font=20)  # , font = self.fontSize)
         self.button.place(relx=self.relXCor, rely=self.relYCor, relwidth=self.relWidth, relheight=self.relHeight)
 
@@ -1019,7 +1001,7 @@ class States:
         self.bgColor = darkGrey
         self.fontSize = ("Verdana", 26)
         self.isVentAbort = True
-        self.button = Button(self.parent, text=self.stateName, command=lambda: self.StateActuation(), fg='red',
+        self.button = Button(self.canvas[0], text=self.stateName, command=lambda: self.StateActuation(), fg='red',
                              bg=darkGrey, font=self.fontSize, bd=5)  # , font=self.fontSize)
         self.button.place(relx=self.relXCor, rely=self.relYCor, relheight=self.relHeight, relwidth=self.relWidth)
 
@@ -1068,13 +1050,12 @@ class States:
 
 class Controller:
 
-    def __init__(self, args, Screen1, Screen2, canReceive, canSend, boxEngineControllerGrid):
+    def __init__(self, canvas, canReceive, canSend, args, boxEngineControllerGrid):
         #["Tank Controller HiPress", 2, False, black],
         self.name, self.id, self.isAPropTank, self.color = args
         self.canReceive = canReceive
         self.canSend = canSend
-        self.parentMain = Screen1
-        self.parent2 = Screen2
+        self.canvas = canvas
         
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
 
@@ -1094,16 +1075,16 @@ class Controller:
             tf = boxEngineControllerGrid * adj
             
             self.Times[ID] = []
-            self.Times[ID].append(Label(self.parent2, text=text, fg=color, bg=black, font=aFont))
+            self.Times[ID].append(Label(self.canvas[1], text=text, fg=color, bg=black, font=aFont))
             self.Times[ID][0].place(**tf.asAbsArgs((0, -1)))
 
             text2 = str(self.canReceive.timingLUT_micros[ID]/1000) + 'ms'
-            self.Times[ID].append(Label(self.parent2, text=text2, fg=orange, bg=black, font=("Verdana", 9)))
+            self.Times[ID].append(Label(self.canvas[1], text=text2, fg=orange, bg=black, font=("Verdana", 9)))
             self.Times[ID][1].place(**tf.asAbsArgs((0, 1)))
 
             # Draws the background box
             pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
-            Screen2.create_line(*tf(pts).tolist(), fill=color, width=1, capstyle='projecting', joinstyle='miter')
+            canvas[1].create_line(*tf(pts).tolist(), fill=color, width=1, capstyle='projecting', joinstyle='miter')
 
     def Refresh(self):
         for ID in HRC.TimingLUT.keys():
