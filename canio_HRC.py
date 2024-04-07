@@ -105,12 +105,17 @@ class CanSend:
     # 
     # Arguments:
     # id: Message id -- Setters in range [32, 36].
-    # time_micros: unsigned 40 bit integer??? -- in microseconds from ???
+    # time_micros: unsigned 32 bit integer -- microsecond delay from fire command.
     """)
-    def set_timing(self, id, time_micros):
-        binstr = bitstring.BitArray(int=time_micros, length=40).bin
+    def set_timing(self, ID, time_micros):
+        binstr = bitstring.BitArray(int=time_micros, length=32).bin
         data = [int('0'+binstr[i:i+8],base=2) for i in range(0, len(binstr), 8)]
-        self.send(id, data, "Sent Timer Message:")
+        self.send(ID, data, "Sent Timer Message:")
+
+        # DEBUG
+        # Echoes the timing to CanRecieve for testing.
+        # rev = {v:k for k,v in HRC.TimingLUT.items()}
+        # self.send(rev[ID], data, "Echo Timer Message:")
 
     @docstring("""
     # Sends a unary message.
@@ -118,8 +123,8 @@ class CanSend:
     # Arguments:
     # id: Command id -- Defined in Config.h
     """)
-    def send_unary_message(self, id):
-        self.send(id, [], "Sent Unary Message:")
+    def send_unary_message(self, ID):
+        self.send(ID, [], "Sent Unary Message:")
         
 
     ##############################
@@ -353,7 +358,7 @@ class CanSend:
     # Sets the ignition time for both igniters.
     # 
     # Arguments:
-    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    # time_micros: unsigned 32 bit integer -- microsecond delay from fire command.
     """)
     def set_ignition(self, time_micros):
         self.set_timing(HRC.SET_IGNITION, time_micros)
@@ -362,7 +367,7 @@ class CanSend:
     # Sets the opening time for the liquid oxygen main valve.
     # 
     # Arguments:
-    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    # time_micros: unsigned 32 bit integer -- microsecond delay from fire command.
     """)
     def set_lmv_open(self, time_micros):
         self.set_timing(HRC.SET_LMV_OPEN, time_micros)
@@ -371,7 +376,7 @@ class CanSend:
     # Sets the opening time for the fuel main valve.
     # 
     # Arguments:
-    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    # time_micros: unsigned 32 bit integer -- microsecond delay from fire command.
     """)
     def set_fmv_open(self, time_micros):
         self.set_timing(HRC.SET_FMV_OPEN, time_micros)
@@ -380,7 +385,7 @@ class CanSend:
     # Sets the closing time for the liquid oxygen main valve.
     # 
     # Arguments:
-    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    # time_micros: unsigned 32 bit integer -- microsecond delay from fire command.
     """)
     def set_lmv_close(self, time_micros):
         self.set_timing(HRC.SET_LMV_CLOSE, time_micros)
@@ -389,7 +394,7 @@ class CanSend:
     # Sets the closing time for the fuel main valve.
     # 
     # Arguments:
-    # time_micros: unsigned 40 bit integer???, in microseconds from ???
+    # time_micros: unsigned 32 bit integer -- microsecond delay from fire command.
     """)
     def set_fmv_close(self, time_micros):
         self.set_timing(HRC.SET_FMV_CLOSE, time_micros)
@@ -428,6 +433,7 @@ class CanReceive:
         self.time_micros = {k:-1 for k in HRC.ToggleKeys.keys()}
 
         self.timingLUT_micros = {k:-1 for k in HRC.TimingLUT.keys()}
+        self.timeLastRecievedPing_micros = time.time_ns() / 1000
         
         # DEBUG
         # self._stdio = ""
@@ -441,8 +447,19 @@ class CanReceive:
     def run(self):
         self.loop = True
 
+        import numpy as np
+
         while self.loop:
-            self.cycle()
+             self.cycle()
+
+            # DEBUG
+            # for key in HRC.SensorLUT:
+            #     v = int(np.random.random()*100)
+            #     self.Sensor_Raw[key] = v
+            #     self.Sensor_Val[key] = HRC.SensorLUT[key]['b'] + HRC.SensorLUT[key]['m'] * v
+            # for key, val in HRC.ToggleLUT.items():
+            #     self.States[key] = np.random.choice(val['states'])
+            # time.sleep(0.1)
 
     @docstring("""
     Runs a single message loop cycle.
@@ -490,14 +507,17 @@ class CanReceive:
         if msg_id in self.timingLUT_micros:
             return self.recvTiming(msg_id, data_list_hex, data_bin)
         
+        if msg_id == HRC.PING_ROCKET_PI:
+            return self.recvPing(msg_id, data_list_hex, data_bin)
+        
         # DEBUG
-        #for state_id, lut in HRC.ToggleLUT.items():
-        #    if msg_id in lut['states']:
-        #        time.sleep(1)
-        #        s = self.States[state_id]
-        #        self.States[state_id] = msg_id
-        #        raise KeyError("Recieved msg with id: %s, altering %s"%(msg_id, s))
-        #        return 
+        # for state_id, lut in HRC.ToggleLUT.items():
+        #     if msg_id in lut['states']:
+        #         time.sleep(1)
+        #         s = self.States[state_id]
+        #         self.States[state_id] = msg_id
+        #         raise KeyError("Recieved msg with id: %s, altering %s"%(msg_id, s))
+        #         return 
 
         raise KeyError("Unknown message recieved with id: %d, and data [%s]"%(msg_id, str(data_list_hex)))
 
@@ -538,10 +558,16 @@ class CanReceive:
     @docstring("""
     # Timing replies.
     # 
-    # Assuming an unsigned 64 bit unix epoch nanosecond timestamp.
+    # 32 bit unix epoch nanosecond timestamp.
     """)
     def recvTiming(self, msg_id, data_list_hex, data_bin):
 
         timestamp = int('0'+''.join(data_bin), base=2)
         self.timingLUT_micros[msg_id] = timestamp/1000
+
+    @docstring("""
+    # Ping reply.
+    """)
+    def recvPing(self, msg_id, data_list_hex, data_bin):
+        self.timeLastRecievedPing_micros = time.time_ns() / 1000
 

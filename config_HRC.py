@@ -79,15 +79,15 @@ SET_FMV_OPEN  = 34  # Set FMV open time.
 SET_LMV_CLOSE = 35  # Set LMV close time.
 SET_FMV_CLOSE = 36  # Set FMV close time.
 
-GET_IGNITION  = 37  # Confirm ignition time for both igniters.
-GET_LMV_OPEN  = 38  # Confirm LMV open time.
-GET_FMV_OPEN  = 39  # Confirm FMV open time.
-GET_LMV_CLOSE = 40  # Confirm LMV close time.
-GET_FMV_CLOSE = 41  # Confirm FMV close time.
+GET_IGNITION  = 37  # Pi Box requests ignition time for both igniters.
+GET_LMV_OPEN  = 38  # Pi Box requests LMV open time.
+GET_FMV_OPEN  = 39  # Pi Box requests FMV open time.
+GET_LMV_CLOSE = 40  # Pi Box requests LMV close time.
+GET_FMV_CLOSE = 41  # Pi Box requests FMV close time.
 
 # Ping
 PING_PI_ROCKET = 42  # *Important*: Pi Box sends a ping to the rocket. 
-PING_ROCKET_PI = 43  # Rocket sends a ping to the Pi Box.
+RESERVED = 43  # Rocket sends a ping to the Pi Box.
 
 # PT Configuration
 ZERO_PTS = 44  # Zero the pressure transducers.
@@ -101,6 +101,16 @@ SENS_1_4_PROP     = 129 # Lox High,   Fuel High, Lox Dome,   Fuel Dome
 SENS_5_8_PROP     = 130 # Lox Tank1,  Lox Tank2, Fuel Tank1, Fuel Tank2
 SENS_9_12_ENGINE  = 131 # Pneumatics, Lox Inlet, Fuel Inlet, Fuel Injector
 SENS_13_16_ENGINE = 132 # Chamber1,   Chamber2,  UNUSED,     UNUSED
+
+# Timing Reports
+SEND_IGNITION  = 133 # ALARA response to 37. Sends igniter time for confirmation.
+SEND_LMV_OPEN  = 134 # ALARA response to 38. Sends LMV open time for confirmation. 
+SEND_FMV_OPEN  = 135 # ALARA response to 39. Sends FMV open time for confirmation.
+SEND_LMV_CLOSE = 136 # ALARA response to 40. Sends LMV close time for confirmation.
+SEND_FMV_CLOSE = 137 # ALARA response to 41. Sends FMV close time for confirmation.
+
+# Ping Response
+PING_ROCKET_PI = 138 # Rocket sends a ping to the Pi Box.
 
 # Data Direction Inputs 
 INPUT  = 0
@@ -255,11 +265,11 @@ StateLUT = {
 }
 
 TimingLUT = {
-    GET_IGNITION:  SET_IGNITION,
-    GET_LMV_OPEN:  SET_LMV_OPEN,
-    GET_FMV_OPEN:  SET_FMV_OPEN,
-    GET_LMV_CLOSE: SET_LMV_CLOSE,
-    GET_FMV_CLOSE: SET_FMV_CLOSE,
+    SEND_IGNITION:  SET_IGNITION,
+    SEND_LMV_OPEN:  SET_LMV_OPEN,
+    SEND_FMV_OPEN:  SET_FMV_OPEN,
+    SEND_LMV_CLOSE: SET_LMV_CLOSE,
+    SEND_FMV_CLOSE: SET_FMV_CLOSE,
 }
 
 ToggleLUT = {

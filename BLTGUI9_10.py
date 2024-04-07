@@ -1174,11 +1174,11 @@ class Controller:
         self.Times = dict()
 
         buffer = [
-            [HRC.GET_LMV_OPEN,  "LOX MV\nOpen",    blue,    0, 0],
-            [HRC.GET_LMV_CLOSE, "LOX MV\nClose",   blue,    0, 1],
-            [HRC.GET_FMV_OPEN,  "Fuel MV\nOpen",   red,     1, 0],
-            [HRC.GET_FMV_CLOSE, "Fuel MV\nClose",  red,     1, 1],
-            [HRC.GET_IGNITION,  "Ignition\nTime",  green, 1/2, 2],
+            [HRC.SEND_LMV_OPEN,  "LOX MV\nOpen",    blue,    0, 0],
+            [HRC.SEND_LMV_CLOSE, "LOX MV\nClose",   blue,    0, 1],
+            [HRC.SEND_FMV_OPEN,  "Fuel MV\nOpen",   red,     1, 0],
+            [HRC.SEND_FMV_CLOSE, "Fuel MV\nClose",  red,     1, 1],
+            [HRC.SEND_IGNITION,  "Ignition\nTime",  green, 1/2, 2],
         ]
         
         for ID, text, color, x, y in buffer:
@@ -1190,7 +1190,7 @@ class Controller:
             self.Times[ID].append(RenderableText(Renderable(self.canvas[1], tf, (0, -1)),
                 font=aFont, fg=color, text=text))
 
-            fmt = lambda v: str(v/1000)+'ms'
+            fmt = lambda v: '%.4f ms'%(v*1000)
             self.Times[ID].append(RenderableText(Renderable(self.canvas[1], tf, (0, 1)),
                 font=font2, fg=orange, formatter=fmt, value=self.canReceive.timingLUT_micros[ID]))
 
