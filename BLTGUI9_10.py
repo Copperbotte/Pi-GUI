@@ -15,6 +15,7 @@ from matplotlib.backends.backend_tkagg import (
 from matplotlib import style
 import numpy as np
 import config_HRC as HRC
+from lint import docstring
 
 style.use("dark_background")
 
@@ -107,6 +108,112 @@ class ImageCache:
                 self.cache[src] = self.cache[src].resize(resize)
             self.cache[src] = ImageTk.PhotoImage(self.cache[src])
         return self.cache[src]
+
+@docstring("""
+# Base class that represents a GUI renderable object.
+# 
+# Otherwise, these objects are called Dynamic.
+# Reset sets the object back to its initial state.
+# Place relocates the object onto the display.
+# Update refreshes non-render variables.
+# Render performs a render.
+""")
+class Renderable:    
+    def _args(self):
+        return self.display, self.grid, self.pos, self.zorder
+    
+    def __init__(self, display, grid, pos, zorder=0):
+        self.display = display
+        self.grid = grid
+        self.pos = pos
+
+        self.zorder = zorder
+        self.dirty = True
+
+    def reset(self):
+        raise NotImplementedError
+    def place(self):
+        raise NotImplementedError
+    def render(self):
+        raise NotImplementedError
+    def update(self, **args):
+        for k,v in args.items():
+            if k in self.__dict__:
+                if self.__dict__[k] == v:
+                    continue
+                self.__dict__[k] = v
+                self.dirty = True
+            else:
+                raise KeyError(k)
+    
+class RenderableText(Renderable):
+    defaultFont = None
+
+    def __init__(self, renderable, font=None, fg=white, bg=black, text="N/A", formatter=None, value=None):
+        super().__init__(*renderable._args())
+        self._font = font if font is not None else RenderableText.defaultFont
+        self._fg   = fg
+        self._bg   = bg
+        self._text = text if formatter is None else formatter(value)
+        self._fmt  = formatter
+        self.reset()
+
+        self.Label = Label(self.display, fg=self.fg, bg=self.bg, font=self.font, text=self.text)
+        self.place()
+
+    #     self.Label.bind('<Double-1>', self.onClick)
+    # 
+    # def onClick(self, event):
+    #     self.bg = green
+    #     self.Label.config(bg=self.bg)
+    #     self.render()
+
+    def reset(self):
+        self.font = self._font
+        self.fg   = self._fg
+        self.bg   = self._bg
+        self.text = self._text
+        self.fmt  = self._fmt
+    
+    def place(self):
+        self.Label.place(**self.grid.asAbsArgs(self.pos))
+
+    def updateFromValue(self, value):
+        self.update(text=self.fmt(value))
+    
+    def render(self):
+        if not self.dirty:
+            return
+        self.dirty = False
+        self.Label.config(text=self.text)
+
+class RenderableImage(Renderable):
+    defaultImage = None
+
+    def __init__(self, renderable, img=None, fg=white, bg=black):
+        super().__init__(*renderable._args())
+        self._img  = img if img is not None else RenderableImage.defaultImage
+        self._fg   = fg
+        self._bg   = bg
+        self.reset()
+
+        self.Button = Button(self.display, bg=bg)
+        self.place()
+        self.render()
+    
+    def reset(self):
+        self.img  = self._img
+        self.fg   = self._fg
+        self.bg   = self._bg
+    
+    def place(self):
+        self.Button.place(**self.grid.asAbsArgs(self.pos))
+    
+    def render(self):
+        if not self.dirty:
+            return
+        self.dirty = False
+        self.Button.config(image=self.img)
 
 class Main:
     # Data needed to set up the Valve, Sensors, States
@@ -213,6 +320,8 @@ class Main:
         self.graphingStatus = True
         self.refreshCounter = True
 
+        self.renderables = []
+
     def imagePlacement(self):
         """ Propulsion System Diagram"""
 
@@ -296,17 +405,28 @@ class Main:
         # This holds the control buttons on the left.
         self.canvas[0].create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
 
+        RenderableText.defaultFont = aFont
+
         # Second display SENSORS box
-        self.SensorsLabel = Label(self.canvas[1], fg=orange, bg=black, font=aFont, text="SENSORS")
-        self.SensorsLabel.place(**self.boxSensorGrid.asAbsArgs((1/2, -2/3)))
+        #self.SensorsLabel = Label(self.canvas[1], fg=orange, bg=black, font=aFont, text="SENSORS")
+        #self.SensorsLabel.place(**self.boxSensorGrid.asAbsArgs((1/2, -2/3)))
+        self.SensorsLabel = RenderableText(
+            Renderable(self.canvas[1], self.boxSensorGrid, (1/2, -2/3)),
+            fg=orange, text="SENSORS")
 
         # Second display VALVES box
-        self.ValvesLabel = Label(self.canvas[1], fg=orange, bg=black, font=aFont, text="VALVES")
-        self.ValvesLabel.place(**self.boxValveGrid.asAbsArgs((1/2, -2/3)))
+        #self.ValvesLabel = Label(self.canvas[1], fg=orange, bg=black, font=aFont, text="VALVES")
+        #self.ValvesLabel.place(**self.boxValveGrid.asAbsArgs((1/2, -2/3)))
+        self.ValvesLabel = RenderableText(
+            Renderable(self.canvas[1], self.boxValveGrid, (1/2, -2/3)),
+            fg=orange, text="VALVES")
         
         # Second display ENGINE CONTROLLER box
-        self.FuelControllerLabel = Label(self.canvas[1], fg=green, bg=black, font=aFont, text="MAIN SEQUENCE")
-        self.FuelControllerLabel.place(**self.boxEngineControllerGrid.asAbsArgs((1/2, -2/3)))
+        #self.FuelControllerLabel = Label(self.canvas[1], fg=green, bg=black, font=aFont, text="MAIN SEQUENCE")
+        #self.FuelControllerLabel.place(**self.boxEngineControllerGrid.asAbsArgs((1/2, -2/3)))
+        self.FuelControllerLabel = RenderableText(
+            Renderable(self.canvas[1], self.boxEngineControllerGrid, (1/2, -2/3)),
+            fg=orange, text="MAIN SEQUENCE")
 
     def ManualOverride(self, event):
         if Main.CurrState != "Override":
@@ -385,13 +505,13 @@ class Main:
             self.time.config(text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
             #self.nodeState.config(text=self.canReceive.NodeStatus)  # can_receive.node_dict_list[self.name]["state"]))
 
-            self.sensorList[1].ReadingLabel.after(GRAPHDATAREFRESHRATE, self.Refresh)
+            self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.Refresh)
         else:
             for sensor in self.sensorList:
                 sensor.Refresh(False)
                 self.refreshCounter += GRAPHDATAREFRESHRATE
 
-            self.sensorList[1].ReadingLabel.after(GRAPHDATAREFRESHRATE, self.Refresh)
+            self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.Refresh)
         
         self.NodeStateLabels[HRC.SR_ENGINE].config(text="Engine Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_ENGINE]])
         self.NodeStateLabels[HRC.SR_PROP  ].config(  text="Prop Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
@@ -419,13 +539,14 @@ class Main:
         self.graphingStatus = not self.graphingStatus
 
     def GenerateGraphs(self):
+
         self.pauseButton = Button(self.canvas[1], font=("Verdana", 10), fg='red', bg='black',
                                   text="GRAPH PAUSE\nBUTTON", command=lambda: self.PauseGraphs())
         self.pauseButton.place(relx=.85, rely=.45)
 
         self.graphs = [
-            Graph("Graph 1", self.canvas[0],   .775, .1 ),
-            Graph("Graph 2", self.canvas[0],   .775, .6 ),
+            Graph("Graph 1", self.canvas[0], .775, .1 ),
+            Graph("Graph 2", self.canvas[0], .775, .6 ),
             Graph("Graph 3", self.canvas[1], .775, .05),
             Graph("Graph 4", self.canvas[1], .775, .5 ),
         ]
@@ -692,7 +813,7 @@ class Main:
                           text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), font=("Verdana", 17))
         self.time.place(relx=.85, rely=0.01)
 
-        self.ManualOverridePhoto = ImageCache("GUI Images/ManualOverrideDisabledButton.png")
+        self.ManualOverridePhoto = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
         self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
                                            bd=5)
         self.ManualOverrideButton.place(relx=.7, rely=0.2)
@@ -759,11 +880,9 @@ class Sensors:
         self.xy0, self.xy1, self.xyoff = tuple(map(np.array, [self.xy0, self.xy1, self.xyoff]))
 
         # self.dataList = []
-        aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
-
-        placeargs = dict(anchor="center") # dict(anchor="nw")
-        bg = black#purple if self.numOfSensors == 0 else black
-
+        fontTitle  = tkFont.Font(family="Verdana", size=10, weight="bold")
+        fontValue1 = tkFont.Font(family="Verdana", size=12)
+        fontValue2 = tkFont.Font(family="Verdana", size=9)
 
         ### 1st Display
         pt = np.array(self.xy0)
@@ -771,12 +890,12 @@ class Sensors:
         tf = dictBoxGridsMain[self.grid] * adj
         
         # self.label corresponds with the main screen box labels, as their titles.
-        self.label = Label(self.canvas[0], text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label.place(**tf.asAbsArgs(-self.xyoff))
+        self.label = RenderableText(Renderable(self.canvas[0], tf, -self.xyoff),
+            font=fontTitle, fg=self.color, text=self.name)
         
         # self.ReadingLabel is the corresponding value for this box.
-        self.ReadingLabel = Label(self.canvas[0], text="N/A", font=("Verdana", 12), fg=orange, bg=bg)
-        self.ReadingLabel.place(**tf.asAbsArgs(self.xyoff))
+        self.ReadingLabel = RenderableText(Renderable(self.canvas[0], tf, self.xyoff),
+            font=fontValue1, fg=orange, formatter=lambda v: str(v) + " psi", value="N/A")
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -789,25 +908,14 @@ class Sensors:
         pt = np.array(self.xy1)
         adj = TransformBox(pt, (1/5,0), (0,1))
         tf = boxSensorGrid * adj
-        
-        pt0 = tf.asAbsArgs((-1, 0))
-        pt1 = tf.asAbsArgs(( 1, 0))
-        #pt2 = tf.asAbsArgs(( 1, -1))
 
         # self.label2 is the sensor title in the SENSORS box.
-        self.label2 = Label(self.canvas[1], text=self.name, font=aFont, fg=self.color, bg=bg)
-        self.label2.place(**pt0)
-#         self.RawReadingLabel2 = Label(self.canvas[1], text="N/A Raw", font=("Verdana", 9), fg='orange', bg=bg)
-#         self.RawReadingLabel2.place(relx=Sensors.numOfSensors % 2 * .125 + .025 + .05,
-#                                     rely=(Sensors.numOfSensors // 2) * .075 + .05 + .0125, **placeargs)
+        self.label2 = RenderableText(Renderable(self.canvas[1], tf, (-1, 0)),
+            font=fontTitle, fg=self.color, text=self.name)
         
         # self.ConvReadingLabel2 is the corresponding value for this box.
-        self.ConvReadingLabel2 = Label(self.canvas[1], text="N/A Converted", font=("Verdana", 9), fg='orange', bg=bg)
-        self.ConvReadingLabel2.place(**pt1)
-
-        # DEBUG
-        #self.ConvReadingLabel3 = Label(self.canvas[1], text=str(HRC.PinLUT[HRC.SensorLUT[self.id]['pin']]), font=("Verdana", 9), fg='orange', bg=bg)
-        #self.ConvReadingLabel3.place(**pt2)
+        self.ConvReadingLabel2 = RenderableText(Renderable(self.canvas[1], tf, (1, 0)),
+            font=fontValue2, fg=orange, formatter=lambda v: str(v) + " psi", value="N/A")
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -828,9 +936,15 @@ class Sensors:
         if LabelRefresh:
             # The first call are to the main display boxes,
             # the second call is to the Sensors box.
-            self.ReadingLabel.config(fg=orange, text=str(value) + " psi")  # Updates the label with the updated value
-            self.ConvReadingLabel2.config(fg=orange, text=str(value) + " psi")
+            #self.ReadingLabel.config(fg=orange, text=str(value) + " psi")  # Updates the label with the updated value
+            #self.ConvReadingLabel2.config(fg=orange, text=str(value) + " psi")
             #self.RawReadingLabel2.config(text=str(self.canReceive.Sensors[self.idRaw]))
+
+            self.ReadingLabel.updateFromValue(value)
+            self.ConvReadingLabel2.updateFromValue(value)
+
+            self.ReadingLabel.render()
+            self.ConvReadingLabel2.render()
 
 class Valves:
     numOfValves = 0
@@ -859,12 +973,9 @@ class Valves:
 
         self.commandID = 1
 
-        aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
+        fontTitle = tkFont.Font(family="Verdana", size=10, weight="bold")
+        fontValue = tkFont.Font(family="Verdana", size=9)
 
-        placeargs = dict(anchor="nw") # dict(anchor="center")
-        bg = black#purple if self.numOfSensors == 0 else black
-        
-        # Precache valve photos
         # LP and FP do not have stale states.
         # Do those valves still exist?
         lut = HRC.ToggleLUT[self.id]
@@ -873,6 +984,7 @@ class Valves:
         self.StatusStates[lut['states'][1]+self.gui_state_offset] = "Stale"
         self.EnableStates = {i:e for i,e in enumerate(["EnableOff", "EnableOn", "EnableStale"])}
 
+        # Precache valve photos
         #for status in self.StatusStates:
         #    for enable in self.EnableStates:
         #        self.status, self.enable = status, enable
@@ -882,26 +994,21 @@ class Valves:
         self.photo = self.imgFromState()
 
         # Displays a button on a vertex in the propline diagram.
-        self.Button = Button(self.canvas[0], font=("Verdana", 10), fg=red, bg=bg)
-        self.Button.place(**boxWireGrid.asAbsArgs(Vertex_Buffer[self.index]))
-        self.Button.config(image=self.photo)
-        self.Button.bind('<Double-1>', self.ValveActuation)
+        self.Button = RenderableImage(Renderable(self.canvas[0], boxWireGrid, Vertex_Buffer[self.index]),
+            img=self.photo)
+        self.Button.Button.bind('<Double-1>', self.ValveActuation)
 
         # Displays valve info on the 2nd display
         pt = np.array([Valves.numOfValves % 2, Valves.numOfValves // 2])
         adj = TransformBox(pt, (1/6,0), (0,1/6))
         tf = boxValveGrid * adj
 
-        pt0 = tf.asAbsArgs((-1, 0))
-        pt1 = tf.asAbsArgs(( 1,-1))
-        pt2 = tf.asAbsArgs(( 1, 1))
-
-        self.label2 = Label(self.canvas[1], text=self.nick, font=aFont, fg=self.color, bg=bg)
-        self.label2.place(**pt0)
-        self.StatusLabel2 = Label(self.canvas[1], text="N/A Status", font=("Verdana", 9), fg=orange, bg=bg)
-        self.StatusLabel2.place(**pt1)
-        self.VoltageLabel2 = Label(self.canvas[1], text="N/A Voltage", font=("Verdana", 9), fg=orange, bg=bg)
-        self.VoltageLabel2.place(**pt2)
+        self.label2 = RenderableText(Renderable(self.canvas[1], tf, (-1, 0)),
+            font=fontTitle, fg=self.color, text=self.nick)
+        self.StatusLabel2 = RenderableText(Renderable(self.canvas[1], tf, ( 1,-1)),
+            font=fontValue, fg=orange, text="N/A Status")
+        self.VoltageLabel2 = RenderableText(Renderable(self.canvas[1], tf, ( 1, 1)),
+            font=fontValue, fg=orange, text="N/A Volts")
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -949,12 +1056,16 @@ class Valves:
         #     self.status = can_receive.node_state[self.id]
         if CanStatus:
             self.status = self.canReceive.States[self.id]
-            #self.VoltageLabel2.config(text = self.canReceive.Sensors[self.sensorID])
-            self.VoltageLabel2.config(text='N/A Volts')
+            # self.VoltageLabel2.update(text=self.canReceive.Sensors[self.sensorID])
+
+            self.StatusLabel2.update(text=self.StatusStates[self.status])
+            self.Button.update(img=self.imgFromState())
+
+            self.VoltageLabel2.render()
+            self.StatusLabel2.render()
+            self.Button.render()
+
             
-            self.StatusLabel2.config(text=self.StatusStates[self.status])
-            self.photo = self.imgFromState()
-            self.Button.config(image=self.photo)
 
 
 class States:
@@ -1058,6 +1169,7 @@ class Controller:
         self.canvas = canvas
         
         aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
+        font2 = ("Verdana", 9)
 
         self.Times = dict()
 
@@ -1075,12 +1187,12 @@ class Controller:
             tf = boxEngineControllerGrid * adj
             
             self.Times[ID] = []
-            self.Times[ID].append(Label(self.canvas[1], text=text, fg=color, bg=black, font=aFont))
-            self.Times[ID][0].place(**tf.asAbsArgs((0, -1)))
+            self.Times[ID].append(RenderableText(Renderable(self.canvas[1], tf, (0, -1)),
+                font=aFont, fg=color, text=text))
 
-            text2 = str(self.canReceive.timingLUT_micros[ID]/1000) + 'ms'
-            self.Times[ID].append(Label(self.canvas[1], text=text2, fg=orange, bg=black, font=("Verdana", 9)))
-            self.Times[ID][1].place(**tf.asAbsArgs((0, 1)))
+            fmt = lambda v: str(v/1000)+'ms'
+            self.Times[ID].append(RenderableText(Renderable(self.canvas[1], tf, (0, 1)),
+                font=font2, fg=orange, formatter=fmt, value=self.canReceive.timingLUT_micros[ID]))
 
             # Draws the background box
             pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -1088,8 +1200,9 @@ class Controller:
 
     def Refresh(self):
         for ID in HRC.TimingLUT.keys():
-            text = str(self.canReceive.timingLUT_micros[ID]/1000) + 'ms'
-            self.Times[ID][1].config(text=text)
+            #self.Times[ID][1].config(text=text)
+            self.Times[ID][1].updateFromValue(self.canReceive.timingLUT_micros[ID])
+            self.Times[ID][1].render()
 
 """
 Starts Code
