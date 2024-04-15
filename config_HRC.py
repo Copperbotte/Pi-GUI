@@ -32,7 +32,7 @@ FIRE         = 2
 TANK_PRESS   = 3
 HIGH_PRESS   = 4
 STANDBY      = 5
-PASSIVE      = 6
+IGNITE       = 6
 TEST         = 7
 
 # Valve & Igniter (HPO Commands)
@@ -260,7 +260,7 @@ StateLUT = {
     TANK_PRESS: "Tank_press",
     HIGH_PRESS: "High_press",
        STANDBY: "Standby",
-       PASSIVE: "Passive",
+        IGNITE: "Ignite",
           TEST: "Test",
 }
 

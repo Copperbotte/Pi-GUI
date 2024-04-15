@@ -168,10 +168,10 @@ class CanSend:
         self.send_unary_message(HRC.STANDBY)
 
     @docstring("""
-    # Sends the passive command.
+    # Sends the ignite command.
     """)
-    def passive(self):
-        self.send_unary_message(HRC.PASSIVE)
+    def ignite(self):
+        self.send_unary_message(HRC.IGNITE)
 
     @docstring("""
     # Sends the test command.
@@ -429,7 +429,7 @@ class CanReceive:
         self.Sensor_Raw = {k:0 for k,v in HRC.SensorLUT.items()}
         self.Sensor_Val = {k:v['b'] for k,v in HRC.SensorLUT.items()}
 
-        self.rocketState = {k:HRC.PASSIVE for k in HRC.ToggleKeys.keys()}
+        self.rocketState = {k:HRC.STANDBY for k in HRC.ToggleKeys.keys()}
         self.time_micros = {k:-1 for k in HRC.ToggleKeys.keys()}
 
         self.timingLUT_micros = {k:-1 for k in HRC.TimingLUT.keys()}
@@ -449,8 +449,12 @@ class CanReceive:
 
         import numpy as np
 
+        timeout = None
         while self.loop:
-             self.cycle()
+            # DEBUG
+            # timeout = 0.1
+
+            self.cycle(timeout=timeout)
 
             # DEBUG
             # for key in HRC.SensorLUT:
@@ -459,13 +463,17 @@ class CanReceive:
             #     self.Sensor_Val[key] = HRC.SensorLUT[key]['b'] + HRC.SensorLUT[key]['m'] * v
             # for key, val in HRC.ToggleLUT.items():
             #     self.States[key] = np.random.choice(val['states'])
-            # time.sleep(0.1)
+            # #time.sleep(0.1)
 
     @docstring("""
     Runs a single message loop cycle.
     """)
-    def cycle(self):
-        msg_in = self.bus.recv(timeout=None)
+    def cycle(self, timeout=None):
+        msg_in = self.bus.recv(timeout=timeout)
+        
+        if msg_in is None:
+            return
+        
         try:
             self.translateMessage(*self.parseMessage(msg_in))
         except Exception as e:

@@ -145,6 +145,8 @@ class Renderable:
                 self.dirty = True
             else:
                 raise KeyError(k)
+    def onClick(self, event):
+        pass # Most things do nothing when you click them.
     
 class RenderableText(Renderable):
     defaultFont = None
@@ -161,8 +163,8 @@ class RenderableText(Renderable):
         self.Label = Label(self.display, fg=self.fg, bg=self.bg, font=self.font, text=self.text)
         self.place()
 
-    #     self.Label.bind('<Double-1>', self.onClick)
-    # 
+        #self.Label.bind('<Double-1>', self.onClick)
+
     # def onClick(self, event):
     #     self.bg = green
     #     self.Label.config(bg=self.bg)
@@ -215,6 +217,39 @@ class RenderableImage(Renderable):
         self.dirty = False
         self.Button.config(image=self.img)
 
+class RenderableTextButton(Renderable):
+    defaultFont = None
+
+    def __init__(self, renderable, font=None, fg=white, bg=black, text="N/A", size=(64,64), onClick=lambda self, event: None):
+        super().__init__(*renderable._args())
+        self._font = font if font is not None else RenderableText.defaultFont
+        self._fg   = fg
+        self._bg   = bg
+        self._text = text 
+        self._size = size
+        
+        self.onClick = onClick
+        self.reset()
+
+        self.Button = Button(self.display, text=self.text, fg=self.fg, bg=self.bg, bd=5, font=self.font)
+        self.place()
+
+    def reset(self):
+        self.font = self._font
+        self.fg   = self._fg  
+        self.bg   = self._bg  
+        self.text = self._text
+        self.size = self._size
+    
+    def place(self):
+        self.Button.place(width=self.size[0], height=self.size[1], **self.grid.asAbsArgs(self.pos))
+    
+    def render(self):
+        if not self.dirty:
+            return
+        self.dirty = False
+        self.Button.config(text=self.text, fg=self.fg, bg=self.bg)
+
 class Main:
     # Data needed to set up the Valve, Sensors, States
     # State LUT Key, VBuffer Index, color
@@ -257,16 +292,18 @@ class Main:
        #[HRC.PT_LOAD_CELL_2_ID,   "Yeet", (  1,   1), (1, 6), (0, 1/3), green ],
        #[HRC.PT_LOAD_CELL_3_ID,   "Yeet", (1/2, 3/2), (1, 7), (0, 1/3), green ],
     ]
-    # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
+    #### [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
+
     States = [
-        #["Active",              2, 1,  3,  5, False, 1],
-        ["Test",                 2, 1,  3,  5, False, 1],
-        ["Hi-Press\nPress Arm",  3, 1, 10, 11, True,  2],
-        ["Hi-Press\nPressurize", 4, 1, 12, 13, False, 3],
-        ["Tank Press \nArm",     5, 1, 14, 15, True,  4],
-        ["Tank \nPressurize",    6, 1, 16, 17, False, 5],
-        ["Fire Arm",             7, 1, 18, 19, True,  6],
-        ["FIRE",                 8, 1, 20, 21, False, 7]
+        [HRC.TEST,       "Test",                 (0, 0), (240, 120)],
+        [HRC.STANDBY,    "Standby",              (0, 1), (240, 120)],
+        #[HRC.HIGH_PRESS, "Hi-Press\nPressurize", (0, 2), (240, 120)],
+        [HRC.HIGH_PRESS, "Hi-Press",             (0, 3), (240, 120)],
+        [HRC.TANK_PRESS, "Tank Press",           (0, 4), (240, 120)],
+        [HRC.IGNITE,     "Ignite",               (0, 5), (240, 120)],
+        [HRC.FIRE,       "FIRE",                 (0, 6), (240, 120)],
+        [HRC.VENT,       "Vent",                 (1, 6), (180, 120)],
+        [HRC.ABORT,      "Abort",              (1.8, 6), (180, 120)],
     ]
     Vent = [
         "Vent", 0.15, 1, 3, 9, False, 0
@@ -284,7 +321,7 @@ class Main:
     ]
 
     # System starts off in a passive state
-    CurrState = HRC.PASSIVE #"Passive"
+    CurrState = HRC.STANDBY #"Passive"
 
     def __init__(self, canReceive, canSend):
         self.canReceive = canReceive
@@ -403,7 +440,7 @@ class Main:
                 #self.WireDebugNumbers[-1].place(x=v[0], y=v[1], anchor='center')
         
         # This holds the control buttons on the left.
-        self.canvas[0].create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
+        # self.canvas[0].create_rectangle(10, 160, 275, 1020, outline=orange, fill=black, width=5)
 
         RenderableText.defaultFont = aFont
 
@@ -499,6 +536,8 @@ class Main:
                 valve.refresh_valve()
             for controller in self.controllerList:
                 controller.Refresh()
+            for state in self.stateList:
+                state.refresh()
 
             #self.autosequence_str = "T  " + str(self.canReceive.AutosequenceTime) + " s"
             #self.autoseqence.config(text=self.autosequence_str)
@@ -522,7 +561,7 @@ class Main:
         prevState = None
         # Every state in State Array gets instantiated and a Button is made for it
         for state in Main.States:
-            button = States(self.canvas, self.canReceive, self.canSend, state, prevState=prevState)
+            button = States(self.canvas, self.canReceive, self.canSend, state, self.boxButtonGrid, prevState=prevState)
             # Creates the button and places it into the Frame. May change name later since it really inst instantiating
             button.MainStateInstantiation()
             # Updates the prevState so that the next state may be able to access it. Its pretty much a Linked List
@@ -568,12 +607,14 @@ class Main:
         boxFuelGrid = TransformBox(boxEngineGrid((2.5,0)), (96, 0), (0, 108))
         boxAeroGrid = TransformBox((748.8, 669.6), (96, 0), (0, 108))
         boxHighPress = TransformBox((912, 81), (96, 0), (0, 108))
+        boxButtonGrid = TransformBox((144, 230), (240, 0), (0, 120))
         
         self.boxLoxGrid = boxLoxGrid
         self.boxEngineGrid = boxEngineGrid
         self.boxFuelGrid = boxFuelGrid
         self.boxAeroGrid = boxAeroGrid
         self.boxHighPress = boxHighPress
+        self.boxButtonGrid = boxButtonGrid
 
         self.dictBoxGridsMain = dict(
             Loxy=self.boxLoxGrid,
@@ -594,6 +635,7 @@ class Main:
             [0, self.boxFuelGrid,   (-2/3, -1/2), 2+1/3, 3,     1, red],
             [0, self.boxAeroGrid,   (-2/3, -1/2), 1+1/3, 1,     1, purple],
             [0, self.boxHighPress,  (-2/3, -1/2), 2+1/3, 1,     1, yellow],
+            [0, self.boxButtonGrid, (-0.55, -0.6), 2*0.55, 2*0.6+6, 5, orange],
 
             # Display 2 Boxes
             [1, self.boxSensorGrid,           (-0.5,-1.25), 2, 10,   5, orange],
@@ -784,8 +826,8 @@ class Main:
         self.GenerateBoxes()
         self.propLinePlacement()
         self.imagePlacement()
-        self.AutoSequence()
-        self.StateReset()
+        #self.AutoSequence()
+        #self.StateReset()
         self.GenerateGraphs()
         self.GenerateBoxDebug()
         
@@ -806,6 +848,11 @@ class Main:
         for controller in Main.Controllers:
             self.controllerList.append(Controller(self.canvas, self.canReceive, self.canSend, controller, self.boxEngineControllerGrid))
 
+        # Instantiates Every State (buttons)
+        self.stateList = []
+        for state in Main.States:
+            self.stateList.append(States(self.canvas, self.canReceive, self.canSend, state, self.boxButtonGrid))
+
         self.Menus(self.canvas[0], self.window[0])
         self.Menus(self.canvas[1], self.window[1])
 
@@ -813,11 +860,11 @@ class Main:
                           text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), font=("Verdana", 17))
         self.time.place(relx=.85, rely=0.01)
 
-        self.ManualOverridePhoto = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
-        self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
-                                           bd=5)
-        self.ManualOverrideButton.place(relx=.7, rely=0.2)
-        self.ManualOverrideButton.bind('<Double-1>', self.ManualOverride)  # bind double left clicks
+        # self.ManualOverridePhoto = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
+        # self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
+        #                                    bd=5)
+        # self.ManualOverrideButton.place(relx=.7, rely=0.2)
+        # self.ManualOverrideButton.bind('<Double-1>', self.ManualOverride)  # bind double left clicks
 
         
 
@@ -855,7 +902,11 @@ class Main:
 
         #self.GenerateBoxDebug()
 
-        self.root.mainloop()
+        while True:
+            # Non blocking update
+            self.root.update_idletasks()
+            self.root.update()
+        #self.root.mainloop()
         #self.window[0].mainloop()
 
 
@@ -1072,22 +1123,62 @@ class States:
 
     # Parent is the Parent Frame
     # args is the data in the States array.
-    def __init__(self, canvas, canReceive, canSend, args, prevState=None):
+    def __init__(self, canvas, canReceive, canSend, args, boxButtonGrid, prevState=None):
         # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
         #["Active",              2, 1,  3,  5, False, 1],
-        self.stateName, self.stateID, self.commandID, self.commandOFF, self.commandON, \
-            self.isArmState, self.StateNumber = args
-
+        #self.stateName, self.stateID, self.commandID, self.commandOFF, self.commandON, \
+        #    self.isArmState, self.StateNumber = args
+        self.stateID, self.stateName, self.pos, self.size = args
+        
         self.canvas = canvas
         self.state = False
         self.prevState = prevState
         self.canSend = canSend
+        self.canReceive = canReceive
         self.relXCor = 0
         self.relYCor = 0
         self.relHeight = 1
         self.relWidth = 1
         self.bgColor = "black"
         self.fontSize = ("Verdana", 10)
+        self.boxButtonGrid = boxButtonGrid
+        self.aFont = tkFont.Font(family="Verdana", size=10, weight="bold")
+        
+        if self.stateName in ["Vent", "Abort"]:
+            self.aFont = tkFont.Font(family="Verdana", size=26)
+
+        self.Button = RenderableTextButton(Renderable(self.canvas[0], boxButtonGrid, self.pos),
+            font=self.aFont, fg=red, bg=black, text=self.stateName, size=self.size)
+        
+        self.Button.Button.bind('<Double-1>', self.onClick)
+        
+
+    def refresh(self):
+        states = set([self.canReceive.rocketState[key] for key in HRC.ToggleKeys])
+        if self.stateID not in states:
+            self.Button.update(fg = red)
+        elif len(states) == 1:
+            self.Button.update(fg = green)
+        else:
+            self.Button.update(fg = yellow)
+        
+        self.Button.render()
+
+    def onClick(self, event):
+        self.refresh()
+
+        fptr = {
+            HRC.ABORT      :self.canSend.abort,
+            HRC.VENT       :self.canSend.vent,
+            HRC.FIRE       :self.canSend.fire,
+            HRC.TANK_PRESS :self.canSend.tank_press,
+            HRC.HIGH_PRESS :self.canSend.high_press,
+            HRC.STANDBY    :self.canSend.standby,
+            HRC.IGNITE     :self.canSend.ignite,
+            HRC.TEST       :self.canSend.test,
+        }
+
+        fptr[self.stateID]()
 
     # The Main state buttons get made here
     def MainStateInstantiation(self):
@@ -1095,6 +1186,7 @@ class States:
         self.relXCor = 0.0125
         self.relHeight = 7/ len(Main.States)/10
         self.relYCor = 1 - (self.relHeight * 1.15) * (len(Main.States) - self.StateNumber + 1) - .025
+        print("MainStateInstantiation relYCor", self.relYCor, self.relYCor*1080)
         self.relWidth = 0.125
         self.bgColor = "black"
         self.isVentAbort = False
@@ -1151,7 +1243,8 @@ class States:
         if self.state:
             self.button.config(fg='red')
             if self.isVentAbort:
-                GUI.StateReset()
+                #GUI.StateReset()
+                print("poop")
             self.state = False
         else:
             self.button.config(fg='green')
