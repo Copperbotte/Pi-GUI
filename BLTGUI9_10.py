@@ -323,9 +323,10 @@ class Main:
     # System starts off in a passive state
     CurrState = HRC.STANDBY #"Passive"
 
-    def __init__(self, canReceive, canSend):
+    def __init__(self, canReceive, canSend, hexsha):
         self.canReceive = canReceive
         self.canSend = canSend
+        self.hexsha = hexsha
 
         self.appMainScreen = None
         self.parentMainScreen = None
@@ -556,7 +557,7 @@ class Main:
         self.NodeStateLabels[HRC.SR_PROP  ].config(  text="Prop Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
 
     def StateReset(self):
-        Main.CurrState = HRC.PASSIVE
+        Main.CurrState = HRC.STANDBY
         # Store previosly instantiated State. Arm States may be able to access the state before it
         prevState = None
         # Every state in State Array gets instantiated and a Button is made for it
@@ -723,7 +724,7 @@ class Main:
             dict(label=HRC.StateLUT[HRC.TANK_PRESS].replace('_',' '), command=self.canSend.tank_press),
             dict(label=HRC.StateLUT[HRC.HIGH_PRESS].replace('_',' '), command=self.canSend.high_press),
             dict(label=HRC.StateLUT[HRC.STANDBY   ].replace('_',' '), command=self.canSend.standby),
-            dict(label=HRC.StateLUT[HRC.PASSIVE   ].replace('_',' '), command=self.canSend.passive),
+            dict(label=HRC.StateLUT[HRC.IGNITE    ].replace('_',' '), command=self.canSend.ignite),
             dict(label=HRC.StateLUT[HRC.TEST      ].replace('_',' '), command=self.canSend.test)
         ]
         for command in commands:
@@ -859,6 +860,9 @@ class Main:
         self.time = Label(self.canvas[0], fg="Orange", bg=black,
                           text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"), font=("Verdana", 17))
         self.time.place(relx=.85, rely=0.01)
+        self.hexshaLabel = Label(self.canvas[0], fg="Orange", bg=black,
+                          text=self.hexsha, font=("Verdana", 17))
+        self.hexshaLabel.place(relx=.85, rely=0.05)
 
         # self.ManualOverridePhoto = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
         # self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
@@ -1324,7 +1328,18 @@ if CanStatus:
     canReceive = CanReceive(**busargs)
     canSend = CanSend(**busargs)
 
-GUI = Main(canReceive, canSend)
+hexsha = "<githash>"
+try:
+    import git
+    repo = git.Repo(search_parent_directories=True)
+    print(repo.head.object.hexsha)
+    print(repo.head.object.message)
+    hexsha = repo.head.object.hexsha[:8]
+except Exception as e:
+    print(e)
+hexsha = "Git hash: " + hexsha
+
+GUI = Main(canReceive, canSend, hexsha)
 # GUI.run()
 GUIThread = Thread(target=GUI.run)
 GUIThread.daemon = True
