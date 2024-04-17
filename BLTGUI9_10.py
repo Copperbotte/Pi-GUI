@@ -552,9 +552,14 @@ class Main:
                 self.refreshCounter += GRAPHDATAREFRESHRATE
 
             self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.Refresh)
-        
+
         self.NodeStateLabels[HRC.SR_ENGINE].config(text="Engine Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_ENGINE]])
         self.NodeStateLabels[HRC.SR_PROP  ].config(  text="Prop Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
+
+        now = datetime.datetime.now().timestamp()
+        if 1 < now - self.lastPingTime:
+            self.lastPingTime = now
+            self.canSend.ping()
 
     def StateReset(self):
         Main.CurrState = HRC.STANDBY
@@ -792,6 +797,9 @@ class Main:
 
     def run(self):  # This takes place of the init
         """ TKinter Initialization"""
+        # self.pr = cProfile.Profile()
+        # self.pr.enable()
+        
         self.root = Tk()
         self.window = []
         self.canvas  = []
@@ -873,13 +881,25 @@ class Main:
         
 
         # RefreshLabel() Refreshes the Readings
+        self.lastPingTime = datetime.datetime.now().timestamp()
+        self.canSend.ping()
         self.Refresh()
 
         """ Runs GUI Loop"""
         self.window[0].attributes("-fullscreen",
                                       True)  # "zoomed" is fullscreen except taskbars on startup, "fullscreen" is no taskbars true fullscreen
-        self.window[0].bind("<Escape>",
-                                lambda event: self.window[0].destroy())  # binds escape key to killing the window
+
+        def kill(event):
+            self.window[0].destroy()
+            # self.pr.disable()
+            # print("Profile done, collecting stats.")
+            # s = io.StringIO()
+            # ps = pstats.Stats(self.pr, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
+            # ps.print_stats(100)
+            # for line in s.getvalue().split('\n'):
+            #     print(line)
+
+        self.window[0].bind("<Escape>", kill)  # binds escape key to killing the window
         self.window[0].bind("<F11>",
                                 lambda event: self.window[0].attributes("-fullscreen",
                                                                             True))  # switches from zoomed to fullscreen
@@ -1338,6 +1358,8 @@ try:
 except Exception as e:
     print(e)
 hexsha = "Git hash: " + hexsha
+
+import cProfile, pstats, io
 
 GUI = Main(canReceive, canSend, hexsha)
 # GUI.run()
