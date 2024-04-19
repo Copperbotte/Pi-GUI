@@ -423,6 +423,19 @@ class CanSend:
         self.send_unary_message(HRC.GET_FMV_OPEN)
         self.send_unary_message(HRC.GET_LMV_CLOSE)
         self.send_unary_message(HRC.GET_FMV_CLOSE)
+    
+    def get_calibration_values(self, SENSOR_ID):
+        self.send_unary_message(HRC.SensorLUT[SENSOR_ID]['cal_get'])
+
+    def set_calibration_values(self, SENSOR_ID, var, val):
+        binstr_s = bitstring.BitArray(int=var, length=8 ).bin
+        binstr_v = bitstring.BitArray(int=val, length=32).bin
+        binstr = binstr_s + binstr_v
+        print(binstr)
+        data = [int('0'+binstr[i:i+8],base=2) for i in range(0, len(binstr), 8)]
+
+        ID = HRC.SensorLUT[SENSOR_ID]['cal_set']
+        self.send(ID, data, "Sent Calibration Values:")
 
 ################################################################################
 ################################# Can Receive ##################################
@@ -449,6 +462,8 @@ class CanReceive:
         self.outgoing_message_ids = {}
 
         self.emaBeta = 0.9
+
+        self.SensorCalibLUT = {HRC.SensorLUT[key]['cal_send']:key for key in HRC.SensorLUT.keys()}
         
         # DEBUG
         # self._stdio = ""
@@ -603,4 +618,10 @@ class CanReceive:
             HRC.PING_ENGINE_PI: HRC.SR_ENGINE,
         }
         self.timeLastRecievedPing_micros[lut[msg_id]] = time.time_ns() / 1000
+
+    def recvCalibrationValues(self, msg_id, data_list_hex, data_bin):
+        vals = [int('0'+data_bin[i:i+32], base=2) for i in range(0, 64, 32)]
+
+        for k,v in zip('m b'.split(' '), vals):
+            HRC.SensorLUT[HRC.SensorCalibLUT[msg_id]][k] = v
 

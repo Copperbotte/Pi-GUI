@@ -721,6 +721,86 @@ class Main:
         except Exception as e:
             self.TimerFunctionLabel.config(text=e)
 
+    def SensorCalibPopUp(self):
+        self.SensorCalibPopUp = Toplevel(self.window[0], background=grey)
+        self.SensorCalibPopUp.geometry("750x250")
+        self.SensorCalibEntries = [None, None, None]
+
+        SensorCalibItems = [[sensor, HRC.SensorLUT[sensor]['name'].replace('\n', ' ')] for sensor in HRC.SensorLUT.keys()]
+        self.SensorCalibLUT = {name:ID for ID,name in SensorCalibItems}
+        
+        clickedOpt = StringVar()
+        clickedOpt.set("Choose Sensor")
+        self.SensorCalibOptions = [name for ID,name in SensorCalibItems]
+        self.SensorCalibOptChoiceDropDown = OptionMenu(self.SensorCalibPopUp, clickedOpt, *self.SensorCalibOptions,
+                                                   command=lambda Sensor2: self.SensorCalibGate(0, Sensor2))
+        self.SensorCalibOptChoiceDropDown.place(relx=0.2, rely=0.25)
+
+        clickedVar = StringVar()
+        clickedVar.set("Choose Variable")
+        self.SensorCalibVariable = "m b".split(' ')
+        self.SensorCalibVarChoiceDropDown = OptionMenu(self.SensorCalibPopUp, clickedVar, *self.SensorCalibVariable,
+                                                   command=lambda Sensor2: self.SensorCalibGate(1, Sensor2))
+        self.SensorCalibVarChoiceDropDown.place(relx=0.4, rely=0.25)
+
+        clickedCom = StringVar()
+        clickedCom.set("Choose Direction")
+        self.SensorCalibCommand = "Set Get".split(' ')
+        self.SensorCalibComChoiceDropDown = OptionMenu(self.SensorCalibPopUp, clickedCom, *self.SensorCalibCommand,
+                                                   command=lambda Sensor2: self.SensorCalibGate(2, Sensor2))
+        self.SensorCalibComChoiceDropDown.place(relx=0.6, rely=0.25)
+        #self.SensorCalibFunctionLabel = Label(self.SensorCalibPopUp, bg=grey)
+        #self.SensorCalibFunctionLabel.place(relx=.5, rely=0.4)
+    
+    def SensorCalibGate(self, item, value):
+        self.SensorCalibEntries[item] = value
+
+        for item in self.SensorCalibEntries:
+            if item is None:
+                return
+        
+        self.SensorCalibDropDownMenu()
+
+    def SensorCalibDropDownMenu(self):
+        self.SensorCalibDataEntryButton = Button(self.SensorCalibPopUp, height=1, width=10, background="grey50",
+                                                    text="Enter")
+        self.SensorCalibDataEntryButton.place(relx=.5, rely=.7)
+        self.SensorCalibstatusLabel = Label(self.SensorCalibPopUp, font=("Helvetica", 12), bg=grey)
+        self.SensorCalibstatusLabel.place(relx=.7, rely=0.6)
+        self.SensorCalibSetData = StringVar()
+        self.SensorCalibSetDataEntry = Entry(self.SensorCalibPopUp, background="grey50",
+                                            textvariable=self.SensorCalibSetData)
+        self.SensorCalibSetDataEntry.place(relx=.5, rely=.5)
+
+        print("shit happens here")
+        print(self.SensorCalibEntries)
+
+        #self.SensorCalibCommand = self.TimingCommands[options.index(object)][2]
+        self.SensorCalibDataEntryButton.config(
+                command=lambda: self.SensorCalibParse()
+            )
+
+    def SensorCalibParse(self):
+        self.SensorCalibFunctionLabel = Label(self.SensorCalibPopUp, bg=grey)
+        self.SensorCalibFunctionLabel.place(relx=.5, rely=0.7)
+        try:
+            ID = self.SensorCalibLUT[self.SensorCalibEntries[0]]
+            var = 0 if "m" else 1
+
+            if self.SensorCalibEntries[2] == "Set":
+                value = int(float(self.SensorCalibSetData.get()))
+                self.canSend.set_calibration_values(ID, var, value)
+            else:
+                self.canSend.get_calibration_values(ID)
+
+            self.SensorCalibFunctionLabel.config(text="Command sent!")
+        except Exception as e:
+            self.SensorCalibFunctionLabel.config(text=e)
+    
+    def getAllSensorCalibVals(self):
+        for ID in HRC.SensorLUT.keys():
+            self.canSend.get_calibration_values(ID)
+
     def Menus(self, parent, app):
         self.menu = Menu(parent, background="grey50", fg=black)
         self.fileMenu = Menu(self.menu)
@@ -805,13 +885,13 @@ class Main:
 
         # Misc
         commands = [
-            dict(label="Ping",     command=self.canSend.ping),
-            dict(label="Zero PTs", command=self.canSend.zero_pts),
+            dict(label="Ping",               command=self.canSend.ping),
+            dict(label="Zero PTs",           command=self.canSend.zero_pts),
+            dict(label="Sensor Calibration", command=self.SensorCalibPopUp),
+            dict(label="Get All Sensor Calibrations", command=self.getAllSensorCalibVals)
         ]
         for command in commands:
             self.Commands_Misc.add_command(**command)
-
-
 
         app.config(menu=self.menu)
 
@@ -1127,13 +1207,6 @@ class Valves:
         Valves.numOfValves += 1
 
     def ValveActuation(self, event):
-        # User is only allowed to actuate valves if in Test mode
-        if Main.CurrState != "Test" and Main.CurrState != "Override":
-            return
-        
-        if self.gui_state_offset < self.status:
-            return
-
         # Request to toggle state
         fptr = {
             HRC.IGN1_ID: [ self.canSend.ign1_off,  self.canSend.ign1_on],
@@ -1344,7 +1417,7 @@ class Controller:
 
             fmt = lambda v: '%.4f ms'%(v*1000)
             self.Times[ID].append(RenderableText(Renderable(self.canvas[1], tf, (0, 1)),
-                font=font2, fg=orange, formatter=fmt, value=self.canReceive.timingLUT_micros[ID]))
+                font=font2, fg=orange, formatter=fmt))
 
             # Draws the background box
             pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
