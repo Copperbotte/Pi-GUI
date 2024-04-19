@@ -417,6 +417,13 @@ class CanSend:
     def zero_pts(self):
         self.send_unary_message(HRC.ZERO_PTS)
 
+    def getDefaultTiming(self):
+        self.send_unary_message(HRC.GET_IGNITION)
+        self.send_unary_message(HRC.GET_LMV_OPEN)
+        self.send_unary_message(HRC.GET_FMV_OPEN)
+        self.send_unary_message(HRC.GET_LMV_CLOSE)
+        self.send_unary_message(HRC.GET_FMV_CLOSE)
+
 ################################################################################
 ################################# Can Receive ##################################
 ################################################################################

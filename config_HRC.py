@@ -1,7 +1,7 @@
 
 NODEID = 8
 VERIFICATIONID = 166
-SENSOR_MULTIPLIER = 100
+SENSOR_MULTIPLIER = 1
 
 ################################################################################
 ####################### pins_arduino.h / Pin Definitions #######################

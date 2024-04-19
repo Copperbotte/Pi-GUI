@@ -153,12 +153,12 @@ class Renderable:
 class RenderableText(Renderable):
     defaultFont = None
 
-    def __init__(self, renderable, font=None, fg=white, bg=black, text="N/A", formatter=None, value=None):
+    def __init__(self, renderable, font=None, fg=white, bg=black, text="N/A", formatter=None):
         super().__init__(*renderable._args())
         self._font = font if font is not None else RenderableText.defaultFont
         self._fg   = fg
         self._bg   = bg
-        self._text = text if formatter is None else formatter(value)
+        self._text = text# if formatter is None else formatter(value)
         self._fmt  = formatter
         self.reset()
 
@@ -183,7 +183,10 @@ class RenderableText(Renderable):
         self.Label.place(**self.grid.asAbsArgs(self.pos))
 
     def updateFromValue(self, value):
-        self.update(text=self.fmt(value))
+        try:
+            self.update(text=self.fmt(value))
+        except Exception as e:
+            pass
     
     def render(self):
         if not self.dirty:
@@ -797,6 +800,8 @@ class Main:
             [HRC.GET_IGNITION,  "Ignition\nTime", self.canSend.set_ignition],
         ]
         self.Commands_Timing.add_command(label="Update timing", command=self.TimingSettingsPopUp)
+        self.Commands_Timing.add_command(label="Request timing", command=self.canSend.getDefaultTiming)
+        self.canSend.getDefaultTiming()
 
         # Misc
         commands = [
@@ -1000,7 +1005,7 @@ class Sensors:
         
         # self.ReadingLabel is the corresponding value for this box.
         self.ReadingLabel = RenderableText(Renderable(self.canvas[0], tf, self.xyoff),
-            font=fontValue1, fg=orange, formatter=lambda v: str(v) + " psi", value="N/A")
+            font=fontValue1, fg=orange, formatter=lambda v: "%.1f psi"%float(v))
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
@@ -1020,7 +1025,7 @@ class Sensors:
         
         # self.ConvReadingLabel2 is the corresponding value for this box.
         self.ConvReadingLabel2 = RenderableText(Renderable(self.canvas[1], tf, (1, 0)),
-            font=fontValue2, fg=orange, formatter=lambda v: str(v) + " psi", value="N/A")
+            font=fontValue2, fg=orange, formatter=lambda v: "%.1f psi"%float(v))
 
         # Draws the background box
         pts = np.array([[-1, -1], [-1, 1], [1,1], [1,-1], [-1,-1]])
