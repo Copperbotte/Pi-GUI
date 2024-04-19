@@ -778,7 +778,7 @@ class Main:
                 value = float(self.SensorCalibSetData.get())
                 self.canSend.set_calibration_values(ID, var, value)
             else:
-                self.canSend.get_calibration_values(ID)
+                self.canSend.get_calibration_values(ID, var)
 
             self.SensorCalibFunctionLabel.config(text="Command sent!")
         except Exception as e:
@@ -786,7 +786,8 @@ class Main:
     
     def getAllSensorCalibVals(self):
         for ID in HRC.SensorLUT.keys():
-            self.canSend.get_calibration_values(ID)
+            self.canSend.get_calibration_values(ID, 0)
+            self.canSend.get_calibration_values(ID, 1)
 
     def Menus(self, parent, app):
         self.menu = Menu(parent, background="grey50", fg=black)
