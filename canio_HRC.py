@@ -417,6 +417,9 @@ class CanSend:
     def zero_pts(self):
         self.send_unary_message(HRC.ZERO_PTS)
 
+    def manual_override_toggle(self):
+        self.send_unary_message(HRC.MANUAL_OVERRIDE)
+
     def getDefaultTiming(self):
         self.send_unary_message(HRC.GET_IGNITION)
         self.send_unary_message(HRC.GET_LMV_OPEN)
@@ -428,8 +431,8 @@ class CanSend:
         self.send_unary_message(HRC.SensorLUT[SENSOR_ID]['cal_get'])
 
     def set_calibration_values(self, SENSOR_ID, var, val):
-        binstr_s = bitstring.BitArray(int=var, length=8 ).bin
-        binstr_v = bitstring.BitArray(int=val, length=32).bin
+        binstr_s = bitstring.BitArray(int=var,   length=8 ).bin
+        binstr_v = bitstring.BitArray(float=val, length=32).bin
         binstr = binstr_s + binstr_v
         print(binstr)
         data = [int('0'+binstr[i:i+8],base=2) for i in range(0, len(binstr), 8)]

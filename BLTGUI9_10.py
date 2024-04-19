@@ -300,15 +300,17 @@ class Main:
     #### [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
 
     States = [
-        [HRC.TEST,       "Test",                 (0, 0), (240, 120)],
-        [HRC.STANDBY,    "Standby",              (0, 1), (240, 120)],
-        #[HRC.HIGH_PRESS, "Hi-Press\nPressurize", (0, 2), (240, 120)],
-        [HRC.HIGH_PRESS, "Hi-Press",             (0, 3), (240, 120)],
-        [HRC.TANK_PRESS, "Tank Press",           (0, 4), (240, 120)],
-        [HRC.IGNITE,     "Ignite",               (0, 5), (240, 120)],
-        [HRC.FIRE,       "FIRE",                 (0, 6), (240, 120)],
-        [HRC.VENT,       "Vent",                 (1, 6), (180, 120)],
-        [HRC.ABORT,      "Abort",              (1.8, 6), (180, 120)],
+        [HRC.TEST,       "Test",                  (0, 8), (240, 85),  True],
+        [HRC.STANDBY,    "Standby",               (0, 7), (240, 85),  True],
+        [HRC.HIGH_PRESS + 4096, "Hi-Press Arm",   (0, 6), (240, 85),  False],
+        [HRC.HIGH_PRESS, "Hi-Press",              (0, 5), (240, 85),  True],
+        [HRC.TANK_PRESS + 4096, "Tank Press Arm", (0, 4), (240, 85),  False],
+        [HRC.TANK_PRESS, "Tank Press",            (0, 3), (240, 85),  True],
+        [HRC.IGNITE + 4096,     "Ignite Arm",     (0, 2), (240, 85),  False],
+        [HRC.IGNITE,     "Ignite",                (0, 1), (240, 85),  True],
+        [HRC.FIRE,       "FIRE",                  (0, 0), (240, 85),  True],
+        [HRC.VENT,       "Vent",                  (1, 0), (180, 120), True],
+        [HRC.ABORT,      "Abort",               (1.8, 0), (180, 120), True],
     ]
     Vent = [
         "Vent", 0.15, 1, 3, 9, False, 0
@@ -471,34 +473,17 @@ class Main:
             Renderable(self.canvas[1], self.boxEngineControllerGrid, (1/2, -2/3)),
             fg=orange, text="MAIN SEQUENCE")
 
-    def ManualOverride(self, event):
-        if Main.CurrState != "Override":
-            self.savedCurrState = Main.CurrState
-            for i in range(len(Main.States)):
-                if Main.States[i][0] == Main.CurrState:
-                    self.reminderButtonOfCurrState = Button(self.canvas[0], text=Main.CurrState,
-                                                            fg='orange', bg='black', bd=5, font=20)
-                    # Goes to logic function when button is pressed
-                    self.reminderButtonOfCurrState.place(relx=0.0125, rely=1 - (1 / len(Main.States) / 2) * (
-                            len(Main.States) - Main.States[i][6] + 1) - .05, relheight=1 / len(Main.States) / 2,
-                                                         relwidth=0.125)
-        if self.manualOverrideState:
-            img = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
-            self.Button = Button(self.canvas[0], image=img, fg='red', bg='black', bd=5)
-            self.canvas[0].killSwitchState = False
-            self.reminderButtonOfCurrState.destroy()
-            Main.CurrState = self.savedCurrState
-            # msg = can.Message(arbitration_id=self.overrideCommandID, data=[self.overrideCommandON], is_extended_id=False)
-            # bus.send(msg)
-        else:
-            img = self.imageCache("GUI Images/ManualOverrideEnabledButton.png")
-            self.Button = Button(self.canvas[0], image=img, fg='green', bg='black', bd=5)
-            self.manualOverrideState = True
-            Main.CurrState = "Override"
-            # msg = can.Message(arbitration_id=self.overrideCommandID, data=[self.overrideCommandOFF], is_extended_id=False)
-            # bus.send(msg)
-        self.Button.place(relx=.7, rely=0.2)
-        self.Button.bind('<Double-1>', self.ManualOverride)  # bind double left clicks
+    def ManualOverrideToggle(self, event):
+        self.manualOverrideState = not self.manualOverrideState
+
+        img = "GUI Images/ManualOverrideEnabledButton.png" if self.manualOverrideState else "GUI Images/ManualOverrideDisabledButton.png"
+        self.ManualOverrideButton.update(img=self.imageCache(img))
+        self.canSend.manual_override_toggle()
+
+    def ManualOverride(self):
+        self.ManualOverrideButton = RenderableImage(Renderable(self.canvas[0], self.boxButtonGrid, (1, 8)),
+            img=self.imageCache("GUI Images/ManualOverrideDisabledButton.png"))
+        self.ManualOverrideButton.Button.bind('<Double-1>', self.ManualOverrideToggle)
 
         # On double press, Call KillSwitch function
     def ThrottlePoints(self):
@@ -550,6 +535,8 @@ class Main:
             self.time.config(text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
             #self.nodeState.config(text=self.canReceive.NodeStatus)  # can_receive.node_dict_list[self.name]["state"]))
 
+            self.ManualOverrideButton.render()
+
             self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.MainRefresh)
         else:
             for sensor in self.sensorList:
@@ -589,7 +576,7 @@ class Main:
         prevState = None
         # Every state in State Array gets instantiated and a Button is made for it
         for state in Main.States:
-            button = States(self.canvas, self.canReceive, self.canSend, state, self.boxButtonGrid, prevState=prevState)
+            button = States(self.canvas, self.canReceive, self.canSend, state, self.boxButtonGrid, self, prevState=prevState)
             # Creates the button and places it into the Frame. May change name later since it really inst instantiating
             button.MainStateInstantiation()
             # Updates the prevState so that the next state may be able to access it. Its pretty much a Linked List
@@ -635,7 +622,7 @@ class Main:
         boxFuelGrid = TransformBox(boxEngineGrid((2.5,0)), (96, 0), (0, 108))
         boxAeroGrid = TransformBox((748.8, 669.6), (96, 0), (0, 108))
         boxHighPress = TransformBox((912, 81), (96, 0), (0, 108))
-        boxButtonGrid = TransformBox((144, 230), (240, 0), (0, 120))
+        boxButtonGrid = TransformBox((144, 950), (240, 0), (0, -90))
         
         self.boxLoxGrid = boxLoxGrid
         self.boxEngineGrid = boxEngineGrid
@@ -663,7 +650,7 @@ class Main:
             [0, self.boxFuelGrid,   (-2/3, -1/2), 2+1/3, 3,     1, red],
             [0, self.boxAeroGrid,   (-2/3, -1/2), 1+1/3, 1,     1, purple],
             [0, self.boxHighPress,  (-2/3, -1/2), 2+1/3, 1,     1, yellow],
-            [0, self.boxButtonGrid, (-0.55, -0.6), 2*0.55, 2*0.6+6, 5, orange],
+            [0, self.boxButtonGrid, (-0.55, -0.6), 2*0.55, 2*0.6+8, 5, orange],
 
             # Display 2 Boxes
             [1, self.boxSensorGrid,           (-0.5,-1.25), 2, 10,   5, orange],
@@ -788,7 +775,7 @@ class Main:
             var = 0 if "m" else 1
 
             if self.SensorCalibEntries[2] == "Set":
-                value = int(float(self.SensorCalibSetData.get()))
+                value = float(self.SensorCalibSetData.get())
                 self.canSend.set_calibration_values(ID, var, value)
             else:
                 self.canSend.get_calibration_values(ID)
@@ -904,6 +891,10 @@ class Main:
         # self.pr = cProfile.Profile()
         # self.pr.enable()
         
+        self.ArmTankPress = False
+        self.ArmHighPress = False
+        self.ArmIgnite = False
+
         self.root = Tk()
         self.window = []
         self.canvas  = []
@@ -964,7 +955,7 @@ class Main:
         # Instantiates Every State (buttons)
         self.stateList = []
         for state in Main.States:
-            self.stateList.append(States(self.canvas, self.canReceive, self.canSend, state, self.boxButtonGrid))
+            self.stateList.append(States(self.canvas, self.canReceive, self.canSend, state, self.boxButtonGrid, self))
 
         self.Menus(self.canvas[0], self.window[0])
         self.Menus(self.canvas[1], self.window[1])
@@ -987,6 +978,7 @@ class Main:
 
         self.PingLabelCMap = mpl.colormaps.get_cmap("RdYlGn")
 
+        self.ManualOverride()
         # self.ManualOverridePhoto = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
         # self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
         #                                    bd=5)
@@ -1255,13 +1247,14 @@ class States:
 
     # Parent is the Parent Frame
     # args is the data in the States array.
-    def __init__(self, canvas, canReceive, canSend, args, boxButtonGrid, prevState=None):
+    def __init__(self, canvas, canReceive, canSend, args, boxButtonGrid, gui, prevState=None):
         # [ State Name, State ID , commandID, commandOFF , commandON, IfItsAnArmState, StateNumber]
         #["Active",              2, 1,  3,  5, False, 1],
         #self.stateName, self.stateID, self.commandID, self.commandOFF, self.commandON, \
         #    self.isArmState, self.StateNumber = args
-        self.stateID, self.stateName, self.pos, self.size = args
+        self.stateID, self.stateName, self.pos, self.size, self.is_a_state_command = args
         
+        self.gui = gui
         self.canvas = canvas
         self.state = False
         self.prevState = prevState
@@ -1287,27 +1280,66 @@ class States:
 
     def refresh(self):
         states = set([self.canReceive.rocketState[key] for key in HRC.ToggleKeys])
-        if self.stateID not in states:
-            self.Button.update(fg = red)
-        elif len(states) == 1:
-            self.Button.update(fg = green)
+
+        if self.is_a_state_command:
+            if self.stateID not in states:
+                self.Button.update(fg = red)
+            elif len(states) == 1:
+                self.Button.update(fg = green)
+            else:
+                self.Button.update(fg = yellow)
         else:
-            self.Button.update(fg = yellow)
-        
+            lut = {
+                HRC.TANK_PRESS + 4096: self.gui.ArmTankPress,
+                HRC.HIGH_PRESS + 4096: self.gui.ArmHighPress,
+                HRC.IGNITE + 4096:     self.gui.ArmIgnite,
+            }
+            if lut[self.stateID]:
+                self.Button.update(fg = green)
+            else:
+                self.Button.update(fg = red)
+         
         self.Button.render()
+
+    def tankPressArm(self):
+        self.gui.ArmTankPress = True
+
+    def highPressArm(self):
+        self.gui.ArmHighPress = True
+
+    def igniteArm(self):
+        self.gui.ArmIgnite = True
+
+    def tankPress(self):
+        if self.gui.ArmTankPress:
+            self.canSend.tank_press()
+            self.gui.ArmTankPress = False
+
+    def highPress(self):
+        if self.gui.ArmHighPress:
+            self.canSend.high_press()
+            self.gui.ArmHighPress = False
+
+    def ignite(self):
+        if self.gui.ArmIgnite:
+            self.canSend.ignite()
+            self.gui.ArmIgnite = False
 
     def onClick(self, event):
         self.refresh()
 
         fptr = {
-            HRC.ABORT      :self.canSend.abort,
-            HRC.VENT       :self.canSend.vent,
-            HRC.FIRE       :self.canSend.fire,
-            HRC.TANK_PRESS :self.canSend.tank_press,
-            HRC.HIGH_PRESS :self.canSend.high_press,
-            HRC.STANDBY    :self.canSend.standby,
-            HRC.IGNITE     :self.canSend.ignite,
-            HRC.TEST       :self.canSend.test,
+            HRC.ABORT             :self.canSend.abort,
+            HRC.VENT              :self.canSend.vent,
+            HRC.FIRE              :self.canSend.fire,
+            HRC.TANK_PRESS        :self.tankPress,
+            HRC.TANK_PRESS + 4096 :self.tankPressArm,
+            HRC.HIGH_PRESS        :self.highPress,
+            HRC.HIGH_PRESS + 4096 :self.highPressArm,
+            HRC.STANDBY           :self.canSend.standby,
+            HRC.IGNITE            :self.ignite,
+            HRC.IGNITE + 4096     :self.igniteArm,
+            HRC.TEST              :self.canSend.test,
         }
 
         fptr[self.stateID]()
