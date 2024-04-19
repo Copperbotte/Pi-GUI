@@ -54,13 +54,15 @@ def intTypeCheck(var, type, label, size):
         return False
 
 class CanSend:
-    def __init__(self, **busargs):
+    def __init__(self, canReceive, **busargs):
         print("Hericlitus Rocket Controller CanSend instance created")
         self.bus = can.interface.Bus(**busargs)
+        self.canReceive = canReceive
         # DEBUG
         # self._test = True
 
     def send(self, ID, DATA, prefix=""):
+        self.canReceive.outgoing_message_ids[ID] = True
         print(">>", prefix, ID, DATA)
         msg = can.Message(arbitration_id=ID, data=DATA, is_extended_id=False)
         self.bus.send(msg)
@@ -433,7 +435,13 @@ class CanReceive:
         self.time_micros = {k:-1 for k in HRC.ToggleKeys.keys()}
 
         self.timingLUT_micros = {k:-1 for k in HRC.TimingLUT.keys()}
-        self.timeLastRecievedPing_micros = time.time_ns() / 1000
+
+        t0 = time.time_ns() / 1000
+        self.timeLastRecievedPing_micros = {k:t0 for k in HRC.ToggleKeys.keys()}
+
+        self.outgoing_message_ids = {}
+
+        self.emaBeta = 0.9
         
         # DEBUG
         # self._stdio = ""
@@ -515,9 +523,12 @@ class CanReceive:
         if msg_id in self.timingLUT_micros:
             return self.recvTiming(msg_id, data_list_hex, data_bin)
         
-        if msg_id == HRC.PING_ROCKET_PI:
+        if msg_id in [HRC.PING_PROP_PI, HRC.PING_ENGINE_PI]:
             return self.recvPing(msg_id, data_list_hex, data_bin)
         
+        if msg_id in self.outgoing_message_ids:
+            return
+
         # DEBUG
         # for state_id, lut in HRC.ToggleLUT.items():
         #     if msg_id in lut['states']:
@@ -560,6 +571,9 @@ class CanReceive:
                 continue
             
             v = val / HRC.SENSOR_MULTIPLIER
+
+            v = self.Sensor_Raw[key]*self.emaBeta + (1.0-self.emaBeta)*v
+
             self.Sensor_Raw[key] = v
             self.Sensor_Val[key] = HRC.SensorLUT[key]['b'] + HRC.SensorLUT[key]['m'] * v
 
@@ -577,5 +591,9 @@ class CanReceive:
     # Ping reply.
     """)
     def recvPing(self, msg_id, data_list_hex, data_bin):
-        self.timeLastRecievedPing_micros = time.time_ns() / 1000
+        lut = {
+            HRC.PING_PROP_PI:   HRC.SR_PROP,
+            HRC.PING_ENGINE_PI: HRC.SR_ENGINE,
+        }
+        self.timeLastRecievedPing_micros[lut[msg_id]] = time.time_ns() / 1000
 

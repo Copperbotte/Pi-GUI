@@ -13,9 +13,11 @@ from matplotlib.backends.backend_tkagg import (
     NavigationToolbar2Tk
 )
 from matplotlib import style
+import matplotlib as mpl
 import numpy as np
 import config_HRC as HRC
 from lint import docstring
+import time
 
 style.use("dark_background")
 
@@ -508,7 +510,7 @@ class Main:
                 Pressurelabel.place(relx = 0.65, rely = 0.5 + throttlepoint*.1)
     
     # Readings Refresher, Recursive Function
-    def Refresh(self):
+    def MainRefresh(self):
         if self.refreshCounter >= REFRESHRATE:
             self.refreshCounter = 0
             # for each sensor in the sensor list. refresh the label
@@ -545,16 +547,33 @@ class Main:
             self.time.config(text=datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
             #self.nodeState.config(text=self.canReceive.NodeStatus)  # can_receive.node_dict_list[self.name]["state"]))
 
-            self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.Refresh)
+            self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.MainRefresh)
         else:
             for sensor in self.sensorList:
                 sensor.Refresh(False)
                 self.refreshCounter += GRAPHDATAREFRESHRATE
 
-            self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.Refresh)
+            self.sensorList[1].ReadingLabel.Label.after(GRAPHDATAREFRESHRATE, self.MainRefresh)
 
         self.NodeStateLabels[HRC.SR_ENGINE].config(text="Engine Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_ENGINE]])
         self.NodeStateLabels[HRC.SR_PROP  ].config(  text="Prop Node State: " + HRC.StateLUT[self.canReceive.rocketState[HRC.SR_PROP]])
+
+        now_micros = time.time_ns() / 1000
+        labeldata = [
+            [HRC.SR_ENGINE, "Engine"],
+            [HRC.SR_PROP,  "Prop"],
+        ]
+        for ID, name in labeldata:
+            secs = (now_micros - self.canReceive.timeLastRecievedPing_micros[ID])/1e6
+
+            timeout_secs = 10.0
+            s = 1.0 - max(0.0, min(secs, timeout_secs))/timeout_secs
+            color = self.PingLabelCMap(s)
+            vals = ["{0:02x}".format(int(255*c)) for c in color[:-1]]
+            color = "#" + "".join(vals)
+
+            #color = green if secs < 3.0 else red
+            self.PingLabels[ID].config(text="Last %s Ping: %.3f s"%(name, secs), fg=color)
 
         now = datetime.datetime.now().timestamp()
         if 1 < now - self.lastPingTime:
@@ -870,7 +889,18 @@ class Main:
         self.time.place(relx=.85, rely=0.01)
         self.hexshaLabel = Label(self.canvas[0], fg="Orange", bg=black,
                           text=self.hexsha, font=("Verdana", 17))
-        self.hexshaLabel.place(relx=.85, rely=0.05)
+        self.hexshaLabel.place(relx=.85, rely=0.01+0.04)
+
+        self.PingLabels = {}
+        self.PingLabels[HRC.SR_ENGINE] = Label(self.canvas[0], fg="Orange", bg=black,
+                          text="Last Engine Ping:", font=("Verdana", 17))
+        self.PingLabels[HRC.SR_ENGINE].place(relx=.65, rely=0.01)
+
+        self.PingLabels[HRC.SR_PROP] = Label(self.canvas[0], fg="Orange", bg=black,
+                          text="Last Prop Ping:", font=("Verdana", 17))
+        self.PingLabels[HRC.SR_PROP].place(relx=.65, rely=0.01+0.04)
+
+        self.PingLabelCMap = mpl.colormaps.get_cmap("RdYlGn")
 
         # self.ManualOverridePhoto = self.imageCache("GUI Images/ManualOverrideDisabledButton.png")
         # self.ManualOverrideButton = Button(self.canvas[0], image=self.ManualOverridePhoto, fg='red', bg='black',
@@ -883,7 +913,7 @@ class Main:
         # RefreshLabel() Refreshes the Readings
         self.lastPingTime = datetime.datetime.now().timestamp()
         self.canSend.ping()
-        self.Refresh()
+        self.MainRefresh()
 
         """ Runs GUI Loop"""
         self.window[0].attributes("-fullscreen",
@@ -1346,7 +1376,7 @@ if CanStatus:
     busargs = dict(channel='can0', bustype='socketcan')
     
     canReceive = CanReceive(**busargs)
-    canSend = CanSend(**busargs)
+    canSend = CanSend(canReceive, **busargs)
 
 hexsha = "<githash>"
 try:

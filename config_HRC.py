@@ -87,10 +87,54 @@ GET_FMV_CLOSE = 41  # Pi Box requests FMV close time.
 
 # Ping
 PING_PI_ROCKET = 42  # *Important*: Pi Box sends a ping to the rocket. 
-RESERVED = 43  # Rocket sends a ping to the Pi Box.
+
+# Reserved
+MANUAL_OVERRIDE = 43 # TODO: WRITE WHAT THIS DOES
 
 # PT Configuration
-ZERO_PTS = 44  # Zero the pressure transducers.
+ZERO_PTS                = 44  # Zero the pressure transducers.
+
+SET_CALIB_LOX_HIGH      = 45  # Adjust "m value" of linear approximation for PTs.
+SET_CALIB_FUEL_HIGH     = 46
+SET_CALIB_LOX_DOME      = 47
+SET_CALIB_FUEL_DOME     = 48
+
+SET_CALIB_LOX_TANK_ONE  = 49
+SET_CALIB_LOX_TANK_TWO  = 50
+SET_CALIB_FUEL_TANK_ONE = 51
+SET_CALIB_FUEL_TANK_TWO = 52
+
+SET_CALIB_PNEUMATICS    = 53
+SET_CALIB_LOX_INLET     = 54
+SET_CALIB_FUEL_INLET    = 55
+SET_CALIB_FUEL_INJECTOR = 56
+
+SET_CALIB_CHAMBER_ONE   = 57
+SET_CALIB_CHAMBER_TWO   = 58
+SET_CALIB_RESERVED      = 59
+SET_CALIB_RESERVED      = 60
+
+GET_CALIB_LOX_HIGH      = 61
+GET_CALIB_FUEL_HIGH     = 62
+GET_CALIB_LOX_DOME      = 63
+GET_CALIB_FUEL_DOME     = 64
+
+GET_CALIB_LOX_TANK_ONE  = 65
+GET_CALIB_LOX_TANK_TWO  = 66
+GET_CALIB_FUEL_TANK_ONE = 67
+GET_CALIB_FUEL_TANK_TWO = 68
+
+GET_CALIB_PNEUMATICS    = 69
+GET_CALIB_LOX_INLET     = 70
+GET_CALIB_FUEL_INLET    = 71
+GET_CALIB_FUEL_INJECTOR = 72
+
+GET_CALIB_CHAMBER_ONE   = 73
+GET_CALIB_CHAMBER_TWO   = 74
+GET_CALIB_RESERVED      = 75
+GET_CALIB_RESERVED      = 76
+
+
 
 # State Reports
 SR_PROP   = 127
@@ -110,7 +154,33 @@ SEND_LMV_CLOSE = 136 # ALARA response to 40. Sends LMV close time for confirmati
 SEND_FMV_CLOSE = 137 # ALARA response to 41. Sends FMV close time for confirmation.
 
 # Ping Response
-PING_ROCKET_PI = 138 # Rocket sends a ping to the Pi Box.
+PING_PROP_PI   = 138 # Prop node ping response to the PI box.
+PING_ENGINE_PI = 139
+OP_MSG_PROP    = 140 # Prop node message 
+OP_MSG_ENGINE  = 141
+
+# PT Calib. Response to "Get" request from GUI
+SEND_CALIB_LOX_HIGH      = 142 # ALARA response to 61.
+SEND_CALIB_FUEL_HIGH     = 143 # ALARA response to 62.
+SEND_CALIB_LOX_DOME      = 144 # ALARA response to 63.
+SEND_CALIB_FUEL_DOME     = 145 # ALARA response to 64.
+
+SEND_CALIB_LOX_TANK_ONE  = 146 # ALARA response to 65.
+SEND_CALIB_LOX_TANK_TWO  = 147 # ALARA response to 66.
+SEND_CALIB_FUEL_TANK_ONE = 148 # ALARA response to 67.
+SEND_CALIB_FUEL_TANK_TWO = 149 # ALARA response to 68.
+
+SEND_CALIB_PNEUMATICS    = 150 # ALARA response to 69.
+SEND_CALIB_LOX_INLET     = 151 # ALARA response to 70.
+SEND_CALIB_FUEL_INLET    = 152 # ALARA response to 71.
+SEND_CALIB_FUEL_INJECTOR = 153 # ALARA response to 72.
+
+SEND_CALIB_CHAMBER_ONE   = 154 # ALARA response to 73.
+SEND_CALIB_CHAMBER_TWO   = 155 # ALARA response to 74.
+SEND_CALIB_RESERVED      = 156 # ALARA response to 75.
+SEND_CALIB_RESERVED      = 157 # ALARA response to 76.
+
+
 
 # Data Direction Inputs 
 INPUT  = 0
@@ -293,20 +363,20 @@ ToggleKeys = {
 }
 
 SensorLUT = {
-         PT_LOX_HIGH_ID: dict(node=SR_PROP,   pin=     PT_LOX_HIGH_PIN, m=     PT_LOX_HIGH_CAL_M, b=     PT_LOX_HIGH_CAL_B, nick="LH",  name="Lox\nHigh Press"),
-        PT_FUEL_HIGH_ID: dict(node=SR_PROP,   pin=    PT_FUEL_HIGH_PIN, m=    PT_FUEL_HIGH_CAL_M, b=    PT_FUEL_HIGH_CAL_B, nick="FH",  name="Fuel\nHigh Press"),
-         PT_LOX_DOME_ID: dict(node=SR_PROP,   pin=     PT_LOX_DOME_PIN, m=     PT_LOX_DOME_CAL_M, b=     PT_LOX_DOME_CAL_B, nick="LD",  name="Lox\nDome Reg"),
-        PT_FUEL_DOME_ID: dict(node=SR_PROP,   pin=    PT_FUEL_DOME_PIN, m=    PT_FUEL_DOME_CAL_M, b=    PT_FUEL_DOME_CAL_B, nick="FD",  name="Fuel\nDome Reg"),
-       PT_LOX_TANK_1_ID: dict(node=SR_PROP,   pin=   PT_LOX_TANK_1_PIN, m=   PT_LOX_TANK_1_CAL_M, b=   PT_LOX_TANK_1_CAL_B, nick="LT1", name="Lox\nTank 1"),
-       PT_LOX_TANK_2_ID: dict(node=SR_PROP,   pin=   PT_LOX_TANK_2_PIN, m=   PT_LOX_TANK_2_CAL_M, b=   PT_LOX_TANK_2_CAL_B, nick="LT2", name="Lox\nTank 2"),
-      PT_FUEL_TANK_1_ID: dict(node=SR_PROP,   pin=  PT_FUEL_TANK_1_PIN, m=  PT_FUEL_TANK_1_CAL_M, b=  PT_FUEL_TANK_1_CAL_B, nick="FT1", name="Fuel\nTank 1"),
-      PT_FUEL_TANK_2_ID: dict(node=SR_PROP,   pin=  PT_FUEL_TANK_2_PIN, m=  PT_FUEL_TANK_2_CAL_M, b=  PT_FUEL_TANK_2_CAL_B, nick="FT2", name="Fuel\nTank 2"),
-       PT_PNUEMATICS_ID: dict(node=SR_ENGINE, pin=   PT_PNUEMATICS_PIN, m=   PT_PNUEMATICS_CAL_M, b=   PT_PNUEMATICS_CAL_B, nick="MVP", name="MV\nPneumatic"),
-        PT_LOX_INLET_ID: dict(node=SR_ENGINE, pin=    PT_LOX_INLET_PIN, m=    PT_LOX_INLET_CAL_M, b=    PT_LOX_INLET_CAL_B, nick="LIN", name="Lox\nProp Inlet"),
-       PT_FUEL_INLET_ID: dict(node=SR_ENGINE, pin=   PT_FUEL_INLET_PIN, m=   PT_FUEL_INLET_CAL_M, b=   PT_FUEL_INLET_CAL_B, nick="FIN", name="Fuel\nProp Inlet"),
-    PT_FUEL_INJECTOR_ID: dict(node=SR_ENGINE, pin=PT_FUEL_INJECTOR_PIN, m=PT_FUEL_INJECTOR_CAL_M, b=PT_FUEL_INJECTOR_CAL_B, nick="FIJ", name="Fuel\nInjector"),
-        PT_CHAMBER_1_ID: dict(node=SR_ENGINE, pin=    PT_CHAMBER_1_PIN, m=    PT_CHAMBER_1_CAL_M, b=    PT_CHAMBER_1_CAL_B, nick="CH1", name="Chamber 1"),
-        PT_CHAMBER_2_ID: dict(node=SR_ENGINE, pin=    PT_CHAMBER_2_PIN, m=    PT_CHAMBER_2_CAL_M, b=    PT_CHAMBER_2_CAL_B, nick="CH2", name="Chamber 2"),
+         PT_LOX_HIGH_ID: dict(node=SR_PROP,   pin=     PT_LOX_HIGH_PIN, m=     PT_LOX_HIGH_CAL_M, b=     PT_LOX_HIGH_CAL_B, nick="LH",  name="Lox\nHigh Press",  cal_set=SET_CALIB_LOX_HIGH,      cal_get=GET_CALIB_LOX_HIGH,      cal_send=SEND_CALIB_LOX_HIGH     ),
+        PT_FUEL_HIGH_ID: dict(node=SR_PROP,   pin=    PT_FUEL_HIGH_PIN, m=    PT_FUEL_HIGH_CAL_M, b=    PT_FUEL_HIGH_CAL_B, nick="FH",  name="Fuel\nHigh Press", cal_set=SET_CALIB_FUEL_HIGH,     cal_get=GET_CALIB_FUEL_HIGH,     cal_send=SEND_CALIB_FUEL_HIGH    ),
+         PT_LOX_DOME_ID: dict(node=SR_PROP,   pin=     PT_LOX_DOME_PIN, m=     PT_LOX_DOME_CAL_M, b=     PT_LOX_DOME_CAL_B, nick="LD",  name="Lox\nDome Reg",    cal_set=SET_CALIB_LOX_DOME,      cal_get=GET_CALIB_LOX_DOME,      cal_send=SEND_CALIB_LOX_DOME     ),
+        PT_FUEL_DOME_ID: dict(node=SR_PROP,   pin=    PT_FUEL_DOME_PIN, m=    PT_FUEL_DOME_CAL_M, b=    PT_FUEL_DOME_CAL_B, nick="FD",  name="Fuel\nDome Reg",   cal_set=SET_CALIB_FUEL_DOME,     cal_get=GET_CALIB_FUEL_DOME,     cal_send=SEND_CALIB_FUEL_DOME    ),
+       PT_LOX_TANK_1_ID: dict(node=SR_PROP,   pin=   PT_LOX_TANK_1_PIN, m=   PT_LOX_TANK_1_CAL_M, b=   PT_LOX_TANK_1_CAL_B, nick="LT1", name="Lox\nTank 1",      cal_set=SET_CALIB_LOX_TANK_ONE,  cal_get=GET_CALIB_LOX_TANK_ONE,  cal_send=SEND_CALIB_LOX_TANK_ONE ),
+       PT_LOX_TANK_2_ID: dict(node=SR_PROP,   pin=   PT_LOX_TANK_2_PIN, m=   PT_LOX_TANK_2_CAL_M, b=   PT_LOX_TANK_2_CAL_B, nick="LT2", name="Lox\nTank 2",      cal_set=SET_CALIB_LOX_TANK_TWO,  cal_get=GET_CALIB_LOX_TANK_TWO,  cal_send=SEND_CALIB_LOX_TANK_TWO ),
+      PT_FUEL_TANK_1_ID: dict(node=SR_PROP,   pin=  PT_FUEL_TANK_1_PIN, m=  PT_FUEL_TANK_1_CAL_M, b=  PT_FUEL_TANK_1_CAL_B, nick="FT1", name="Fuel\nTank 1",     cal_set=SET_CALIB_FUEL_TANK_ONE, cal_get=GET_CALIB_FUEL_TANK_ONE, cal_send=SEND_CALIB_FUEL_TANK_ONE),
+      PT_FUEL_TANK_2_ID: dict(node=SR_PROP,   pin=  PT_FUEL_TANK_2_PIN, m=  PT_FUEL_TANK_2_CAL_M, b=  PT_FUEL_TANK_2_CAL_B, nick="FT2", name="Fuel\nTank 2",     cal_set=SET_CALIB_FUEL_TANK_TWO, cal_get=GET_CALIB_FUEL_TANK_TWO, cal_send=SEND_CALIB_FUEL_TANK_TWO),
+       PT_PNUEMATICS_ID: dict(node=SR_ENGINE, pin=   PT_PNUEMATICS_PIN, m=   PT_PNUEMATICS_CAL_M, b=   PT_PNUEMATICS_CAL_B, nick="MVP", name="MV\nPneumatic",    cal_set=SET_CALIB_PNEUMATICS,    cal_get=GET_CALIB_PNEUMATICS,    cal_send=SEND_CALIB_PNEUMATICS   ),
+        PT_LOX_INLET_ID: dict(node=SR_ENGINE, pin=    PT_LOX_INLET_PIN, m=    PT_LOX_INLET_CAL_M, b=    PT_LOX_INLET_CAL_B, nick="LIN", name="Lox\nProp Inlet",  cal_set=SET_CALIB_LOX_INLET,     cal_get=GET_CALIB_LOX_INLET,     cal_send=SEND_CALIB_LOX_INLET    ),
+       PT_FUEL_INLET_ID: dict(node=SR_ENGINE, pin=   PT_FUEL_INLET_PIN, m=   PT_FUEL_INLET_CAL_M, b=   PT_FUEL_INLET_CAL_B, nick="FIN", name="Fuel\nProp Inlet", cal_set=SET_CALIB_FUEL_INLET,    cal_get=GET_CALIB_FUEL_INLET,    cal_send=SEND_CALIB_FUEL_INLET   ),
+    PT_FUEL_INJECTOR_ID: dict(node=SR_ENGINE, pin=PT_FUEL_INJECTOR_PIN, m=PT_FUEL_INJECTOR_CAL_M, b=PT_FUEL_INJECTOR_CAL_B, nick="FIJ", name="Fuel\nInjector",   cal_set=SET_CALIB_FUEL_INJECTOR, cal_get=GET_CALIB_FUEL_INJECTOR, cal_send=SEND_CALIB_FUEL_INJECTOR),
+        PT_CHAMBER_1_ID: dict(node=SR_ENGINE, pin=    PT_CHAMBER_1_PIN, m=    PT_CHAMBER_1_CAL_M, b=    PT_CHAMBER_1_CAL_B, nick="CH1", name="Chamber 1",        cal_set=SET_CALIB_CHAMBER_ONE,   cal_get=GET_CALIB_CHAMBER_ONE,   cal_send=SEND_CALIB_CHAMBER_ONE  ),
+        PT_CHAMBER_2_ID: dict(node=SR_ENGINE, pin=    PT_CHAMBER_2_PIN, m=    PT_CHAMBER_2_CAL_M, b=    PT_CHAMBER_2_CAL_B, nick="CH2", name="Chamber 2",        cal_set=SET_CALIB_CHAMBER_TWO,   cal_get=GET_CALIB_CHAMBER_TWO,   cal_send=SEND_CALIB_CHAMBER_TWO  ),
 #                    -1 : dict(pin=-1,                   m=1,                      b=0,                      nick="NIL", name="NULL SENSOR"), # Padding
 }
 
