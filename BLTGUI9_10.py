@@ -876,7 +876,8 @@ class Main:
             dict(label="Ping",               command=self.canSend.ping),
             dict(label="Zero PTs",           command=self.canSend.zero_pts),
             dict(label="Sensor Calibration", command=self.SensorCalibPopUp),
-            dict(label="Get All Sensor Calibrations", command=self.getAllSensorCalibVals)
+            dict(label="Get All Sensor Calibrations", command=self.getAllSensorCalibVals),
+            dict(label="Start Data Logging", command=self.canSend.start_data_logging)
         ]
         for command in commands:
             self.Commands_Misc.add_command(**command)

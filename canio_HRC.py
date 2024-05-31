@@ -441,6 +441,9 @@ class CanSend:
         data = [int('0'+binstr[i:i+8],base=2) for i in range(0, len(binstr), 8)]
         self.send(ID, data, "Set Calibration Values:")
 
+    def start_data_logging(self):
+        self.send_unary_message(HRC.DATA_LOGGING)
+
 ################################################################################
 ################################# Can Receive ##################################
 ################################################################################

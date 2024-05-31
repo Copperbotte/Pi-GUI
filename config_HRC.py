@@ -98,7 +98,7 @@ GET_M_VALUE = 45  # Adjust "m value" of linear approximation for PTs.
 SET_M_VALUE = 46
 GET_B_VALUE = 47
 SET_B_VALUE = 48
-
+DATA_LOGGING = 49 # Sends command to start data logging on SD cards
 
 # State Reports
 SR_PROP   = 127
